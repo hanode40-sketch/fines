@@ -100,7 +100,7 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 </head>
 <body>
 <header class="top">
-  <div><h1>📋 نظام المخالفات والتبصيم</h1><small id="whoami">Violations &amp; Fingerprint System</small></div>
+  <div><h1>📋 نظام المخالفات المرورية</h1><small id="whoami">Traffic Violations — e-Documentation</small></div>
   <a href="https://hanode40-sketch.github.io/all-op/">← أدوات التشغيل</a>
 </header>
 <div class="wrap">
@@ -125,7 +125,7 @@ const dt = s => String(s || '').replace('T', ' ').slice(0, 16);
 const uniq = a => [...new Set(a)];
 function toast(msg, err) { const t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), err ? 6000 : 3200); }
 function pill(text) {
-  const cls = /ملغاة|مرفوض|رفض|معترض عليها|غير/.test(text) ? 'p-bad' : /تم التبصيم|مكتمل|معتمد|قائمة|مقبول/.test(text) ? 'p-ok'
+  const cls = /ملغاة|مرفوض|رفض|معترض عليها|غير/.test(text) ? 'p-bad' : /تم التبصيم|مكتمل|معتمد|قائمة|مقبول|أقرّ|ثابتة/.test(text) ? 'p-ok'
     : /بانتظار|قيد|تعديل|أعيد|لم يتم|مسودة/.test(text) ? 'p-warn' : 'p-info';
   return `<span class="pill ${cls}">${esc(text)}</span>`;
 }
@@ -191,7 +191,7 @@ const PERM_LABEL = {
 const TABS = [
   { id: 'dash', ar: 'لوحة التحكم', ok: () => can('dashboard') },
   { id: 'list', ar: 'المخالفات', ok: () => can('view') },
-  { id: 'drivers', ar: 'السائقون', ok: () => canAny('drivers', 'print', 'stamp', 'whatsapp') },
+  { id: 'drivers', ar: 'السائقون', ok: () => canAny('drivers', 'print', 'whatsapp') },
   { id: 'reqs', ar: 'الطلبات والمراجعة', ok: () => true, badge: () => S.R.filter(r => OPEN.indexOf(r.status) > -1 && canReview(r) && r.createdBy !== S.me.u).length },
   { id: 'import', ar: 'الاستيراد', ok: () => S.me.admin },
   { id: 'vehicles', ar: 'المركبات', ok: () => canAny('vehicles', 'view') },
@@ -243,12 +243,13 @@ async function loadPhones() {
 
 /* ============ مساعدات بيانات ============ */
 const vOf = n => S.V.find(v => String(v.vno) === String(n));
+const DONE = v => ['أقرّ السائق إلكترونياً', 'ثابتة — لم يعترض خلال المهلة', 'تم التبصيم (ورقي)'].indexOf(v.doc) > -1;
 function drivers() {
   const m = {};
   S.V.forEach(v => {
-    const k = String(v.iqama); if (!m[k]) m[k] = { iqama: k, name: v.name, list: [], total: 0, open: 0, unstamped: 0 };
+    const k = String(v.iqama); if (!m[k]) m[k] = { iqama: k, name: v.name, list: [], total: 0, open: 0, unstamped: 0, notSent: 0 };
     const d = m[k]; d.list.push(v); d.name = v.name;
-    if (v.status !== 'ملغاة') { d.open++; d.total += Number(v.amount || 0); if (v.stamp !== 'تم التبصيم') d.unstamped++; }
+    if (v.status !== 'ملغاة') { d.open++; d.total += Number(v.amount || 0); if (!DONE(v)) d.unstamped++; if (v.doc === 'لم يُبلّغ') d.notSent++; }
   });
   return Object.values(m).sort((a, b) => b.open - a.open);
 }
@@ -262,11 +263,11 @@ function vTable(list, opts) {
   if (!list.length) return '<div class="empty">لا توجد مخالفات</div>';
   const showAmt = canAny('finance', 'print', 'whatsapp');
   return `<div class="scroll"><table class="tbl"><thead><tr>${opts.sel ? '<th><input type="checkbox" data-all></th>' : ''}
-  <th>رقم المخالفة</th><th>السائق</th><th>الهوية</th><th>المخالفة</th><th>المدينة</th><th>التاريخ</th><th>اللوحة / التشغيل</th>${showAmt ? '<th>المبلغ</th>' : ''}<th>التبصيم</th><th>الحالة</th><th>المسؤولية</th></tr></thead><tbody>
+  <th>رقم المخالفة</th><th>السائق</th><th>الهوية</th><th>المخالفة</th><th>المدينة</th><th>التاريخ</th><th>اللوحة / التشغيل</th>${showAmt ? '<th>المبلغ</th>' : ''}<th>التوثيق</th><th>الحالة</th><th>المسؤولية</th></tr></thead><tbody>
   ${list.slice(0, opts.max || 1500).map(v => `<tr class="click" data-v="${esc(v.vno)}">${opts.sel ? `<td><input type="checkbox" data-s="${esc(v.vno)}" ${v.status === 'ملغاة' ? 'disabled' : ''}></td>` : ''}
    <td class="n">${esc(v.vno)}</td><td>${esc(v.name)}${v.transferredFrom ? '<br><span class="small muted">محوّلة من: ' + esc(v.transferredFrom) + '</span>' : ''}</td><td class="n">${esc(v.iqama)}</td>
    <td>${esc(v.descAr || v.descEn)}</td><td>${esc(v.city)}</td><td class="n">${esc(d10(v.dateG))} ${esc(t5(v.time))}</td><td class="n">${esc(v.plate)}<br>${esc(v.opNo)}</td>
-   ${showAmt ? `<td class="n">${money(v.amount)}</td>` : ''}<td>${pill(v.stamp || 'لم يتم التبصيم')}${v.sendCount > 0 ? '<br><span class="small muted">📲 أُرسلت ' + esc(v.sendCount) + '</span>' : ''}</td>
+   ${showAmt ? `<td class="n">${money(v.amount)}</td>` : ''}<td>${pill(v.doc || 'لم يُبلّغ')}${v.sendCount > 0 ? '<br><span class="small muted">📲 أُرسلت ' + esc(v.sendCount) + (v.doc === 'تم التبليغ — ضمن مهلة الاعتراض' ? ' — حتى ' + esc(dt(v.deadline)) : '') + '</span>' : ''}</td>
    <td>${pill(v.status || 'قائمة')}${v.objection ? '<br>' + pill(v.objection) : ''}</td><td><span class="small">مسؤولية ${esc(v.resp || 'السائق')}</span></td></tr>`).join('')}
   </tbody></table></div>${list.length > (opts.max || 1500) ? `<div class="small muted">يُعرض أول ${opts.max || 1500} من ${list.length} — ضيّق البحث</div>` : ''}`;
 }
@@ -284,7 +285,7 @@ function vDash(m) {
   const act = S.V.filter(v => v.status !== 'ملغاة');
   const fin = can('finance');
   const total = act.reduce((s, v) => s + Number(v.amount || 0), 0);
-  const stamped = act.filter(v => v.stamp === 'تم التبصيم').length;
+  const stamped = act.filter(DONE).length; const cnt = k => act.filter(v => v.doc === k).length;
   const pend = S.R.filter(r => OPEN.indexOf(r.status) > -1).length;
   const objs = S.R.filter(r => r.type === 'objection' && OPEN.indexOf(r.status) > -1).length;
   const months = {}; act.forEach(v => { months[v.month] = (months[v.month] || 0) + 1; });
@@ -295,8 +296,9 @@ function vDash(m) {
   m.innerHTML = `<div class="kpis">
     <div class="kpi"><span>المخالفات القائمة</span><b>${act.length.toLocaleString('en-US')}</b></div>
     ${fin ? `<div class="kpi"><span>إجمالي المبالغ (ريال)</span><b>${money(total)}</b></div>` : ''}
-    <div class="kpi"><span>تم التبصيم</span><b>${stamped.toLocaleString('en-US')}</b><span>${act.length ? Math.round(stamped * 100 / act.length) : 0}%</span></div>
-    <div class="kpi"><span>لم يتم التبصيم</span><b>${(act.length - stamped).toLocaleString('en-US')}</b></div>
+    <div class="kpi"><span>موثّقة (إقرار / ثابتة / تبصيم سابق)</span><b>${stamped.toLocaleString('en-US')}</b><span>${act.length ? Math.round(stamped * 100 / act.length) : 0}%</span></div>
+    <div class="kpi"><span>لم تُبلّغ بعد</span><b>${cnt('لم يُبلّغ').toLocaleString('en-US')}</b></div>
+    <div class="kpi"><span>ضمن مهلة الاعتراض</span><b>${cnt('تم التبليغ — ضمن مهلة الاعتراض')}</b></div>
     <div class="kpi"><span>طلبات قيد المراجعة</span><b>${pend}</b></div>
     <div class="kpi"><span>اعتراضات مفتوحة</span><b>${objs}</b></div>
     <div class="kpi"><span>عدد السائقين</span><b>${uniq(act.map(v => v.iqama)).length}</b></div>
@@ -305,7 +307,7 @@ function vDash(m) {
    <div class="card grow"><h2>المخالفات حسب شهر الكشف</h2><div class="bars">${mk.map(k => `<div class="b"><span>${esc(k)}</span><i style="width:${months[k] / mx * 70}%"></i><b>${months[k]}</b></div>`).join('') || '<div class="empty">—</div>'}</div></div>
    <div class="card grow"><h2>أكثر المخالفات تكراراً</h2><div class="bars">${tk.map(k => `<div class="b"><span style="width:200px">${esc(k)}</span><i style="width:${types[k] / tx * 40}%;background:var(--acc)"></i><b>${types[k]}</b></div>`).join('')}</div></div>
   </div>
-  <div class="card"><h2>أكثر السائقين مخالفات</h2><div class="scroll"><table class="tbl"><thead><tr><th>السائق</th><th>الهوية</th><th>العدد</th><th>لم يتم التبصيم</th>${fin ? '<th>المبلغ</th>' : ''}</tr></thead><tbody>
+  <div class="card"><h2>أكثر السائقين مخالفات</h2><div class="scroll"><table class="tbl"><thead><tr><th>السائق</th><th>الهوية</th><th>العدد</th><th>غير موثّقة</th>${fin ? '<th>المبلغ</th>' : ''}</tr></thead><tbody>
    ${dr.map(d => `<tr class="click" data-d="${esc(d.iqama)}"><td>${esc(d.name)}</td><td class="n">${esc(d.iqama)}</td><td>${d.open}</td><td>${d.unstamped}</td>${fin ? `<td class="n">${money(d.total)}</td>` : ''}</tr>`).join('')}</tbody></table></div></div>`;
   m.querySelectorAll('[data-d]').forEach(tr => tr.onclick = () => showDriver(tr.dataset.d));
 }
@@ -316,14 +318,14 @@ function vList(m) {
   m.innerHTML = `<div class="card"><div class="row">
     <input id="q" type="search" class="grow" placeholder="ابحث برقم المخالفة أو الهوية أو اسم السائق أو اللوحة أو رقم التشغيل">
     <select id="fm"><option value="">كل الأشهر</option>${months.map(x => `<option>${esc(x)}</option>`).join('')}</select>
-    <select id="fs"><option value="">كل حالات التبصيم</option><option>لم يتم التبصيم</option><option>بانتظار اعتماد التبصيم</option><option>تم التبصيم</option><option>رفض التبصيم</option></select>
+    <select id="fs"><option value="">كل حالات التوثيق</option><option>لم يُبلّغ</option><option>تم التبليغ — ضمن مهلة الاعتراض</option><option>أقرّ السائق إلكترونياً</option><option>ثابتة — لم يعترض خلال المهلة</option><option>معترض عليها</option><option>تم التبصيم (ورقي)</option></select>
     <select id="fo"><option value="">الكل</option><option value="obj">معترض عليها</option><option value="sent">أُرسلت واتساب</option><option value="notsent">لم تُرسل</option><option value="tr">محوّلة</option></select>
     <button class="btn sec" id="xls">⬇️ Excel</button></div>
     <div class="small muted" id="cnt" style="margin-top:6px"></div></div><div class="card" id="res"></div>`;
   const go = () => {
     let l = search(S.V.filter(v => v.status !== 'ملغاة'), $('q').value);
     if ($('fm').value) l = l.filter(v => v.month === $('fm').value);
-    if ($('fs').value) l = l.filter(v => (v.stamp || 'لم يتم التبصيم') === $('fs').value);
+    if ($('fs').value) l = l.filter(v => (v.doc || 'لم يُبلّغ') === $('fs').value);
     const o = $('fo').value;
     if (o === 'obj') l = l.filter(v => v.objection); if (o === 'sent') l = l.filter(v => v.sendCount > 0);
     if (o === 'notsent') l = l.filter(v => !(v.sendCount > 0)); if (o === 'tr') l = l.filter(v => v.transferredFrom);
@@ -337,7 +339,7 @@ function vList(m) {
 }
 const vCols = () => [['رقم المخالفة', 'vno'], ['رقم الهوية', 'iqama'], ['اسم السائق', 'name'], ['المخالفة بالعربي', 'descAr'], ['المخالفة بالإنجليزي', 'descEn'],
   ['لوحة المركبة', 'plate'], ['رقم التشغيل', 'opNo'], ['المدينة', 'city'], ['التاريخ الهجري', 'dateH'], ['التاريخ الميلادي', v => d10(v.dateG)], ['الوقت', v => t5(v.time)],
-  ...(can('finance') ? [['المبلغ', v => Number(v.amount || 0)]] : []), ['التبصيم', 'stamp'], ['الحالة', 'status'], ['الاعتراض', 'objection'], ['مرات الإرسال', 'sendCount'], ['شهر الكشف', 'month'], ['ملاحظات', 'notes']];
+  ...(can('finance') ? [['المبلغ', v => Number(v.amount || 0)]] : []), ['التوثيق', 'doc'], ['موعد انتهاء المهلة', v => dt(v.deadline)], ['إقرار السائق', v => dt(v.ackAt)], ['الحالة', 'status'], ['الاعتراض', 'objection'], ['مرات الإرسال', 'sendCount'], ['شهر الكشف', 'month'], ['ملاحظات', 'notes']];
 
 async function showViolation(vno) {
   const mm = modal('مخالفة رقم ' + esc(vno), '<div class="loader">…</div>', true);
@@ -348,9 +350,8 @@ async function showViolation(vno) {
     if (can('cancelReq')) acts.push(`<button class="btn bad sm" data-a="cancel">طلب إلغاء</button>`);
     if (can('transferReq')) acts.push(`<button class="btn warn sm" data-a="transfer">طلب تحويل لسائق آخر</button>`);
     if (can('docs')) acts.push(`<button class="btn sec sm" data-a="doc">رفع مستند / ملاحظة</button>`);
-    if (can('stamp') && v.stamp !== 'تم التبصيم') acts.push(`<button class="btn sm" data-a="stamp">رفع إثبات التبصيم</button>`);
   }
-  if (canAny('drivers', 'print', 'stamp', 'whatsapp')) acts.push(`<button class="btn sec sm" data-a="driver">ملف السائق</button>`);
+  if (canAny('drivers', 'print', 'whatsapp')) acts.push(`<button class="btn sec sm" data-a="driver">ملف السائق</button>`);
   if (S.me.admin) acts.push(`<button class="btn sec sm" data-a="resp">تصنيف المسؤولية (المدير)</button>`);
   mm.querySelector('.bd').innerHTML = `
    <div class="kv">
@@ -358,7 +359,7 @@ async function showViolation(vno) {
     <div><b>المخالفة</b>${esc(v.descAr)}<br><span class="small muted" dir="ltr">${esc(v.descEn)}</span></div>
     <div><b>المدينة</b>${esc(v.city)}</div><div><b>التاريخ</b>${esc(d10(v.dateG))} — ${esc(v.dateH)} — ${esc(t5(v.time))}</div>
     <div><b>اللوحة</b>${esc(v.plate)}</div><div><b>رقم التشغيل</b>${esc(v.opNo)}</div><div><b>المبلغ</b>${money(v.amount)}${v.origAmount ? ' (الأصلي ' + money(v.origAmount) + ')' : ''}</div>
-    <div><b>التبصيم</b>${pill(v.stamp || 'لم يتم التبصيم')} ${v.supervisor ? '<span class="small">' + esc(v.supervisor) + '</span>' : ''}</div>
+    <div><b>التوثيق الإلكتروني</b>${pill(v.doc || 'لم يُبلّغ')}${v.notifiedAt ? `<br><span class="small">أول تبليغ ${esc(dt(v.notifiedAt))} — المهلة حتى ${esc(dt(v.deadline))}</span>` : ''}${v.ackAt ? `<br><span class="small">أقرّ السائق ${esc(dt(v.ackAt))}</span>` : ''}</div>
     <div><b>الحالة</b>${pill(v.status || 'قائمة')} ${v.objection ? pill(v.objection) : ''}</div><div><b>المسؤولية</b>مسؤولية ${esc(v.resp || 'السائق')}</div>
     <div><b>شهر الكشف</b>${esc(v.month)}</div><div><b>الإرسال واتساب</b>${v.sendCount > 0 ? esc(v.sendCount) + ' مرة — آخرها ' + esc(dt(v.lastSentAt)) : 'لم تُرسل'}</div>
     <div><b>الاستيراد</b>${esc(v.importedBy)} — ${esc(dt(v.importedAt))}</div>${v.transferredFrom ? `<div><b>محوّلة من</b>${esc(v.transferredFrom)}</div>` : ''}
@@ -368,7 +369,7 @@ async function showViolation(vno) {
    <h3>المستندات والإثباتات المعتمدة</h3>${filesHtml(v.docs)}
    <h3>الطلبات</h3>${j.requests.length ? reqMini(j.requests) : '<span class="muted small">لا توجد</span>'}
    <h3>الإرسال عبر واتساب</h3>${j.sends.length ? j.sends.map(s => `<div class="small">📲 ${esc(dt(s.at))} — إلى ${esc(s.phone)} — بواسطة ${esc(s.byName)} ${s.pdfUrl ? `— <a href="${esc(s.pdfUrl)}" target="_blank">الكشف</a>` : ''}</div>`).join('') : '<span class="muted small">لا يوجد</span>'}
-   <h3>الطباعة والتبصيم</h3>${j.prints.length ? j.prints.map(p => `<div class="small">🖨️ ${esc(dt(p.at))} — ${p.kind === 'stamp' ? 'نموذج تبصيم' : 'كشف'} — ${esc(p.byName)}</div>`).join('') : '<span class="muted small">لا يوجد</span>'}
+   <h3>الكشوف المحمّلة</h3>${j.prints.length ? j.prints.map(p => `<div class="small">🖨️ ${esc(dt(p.at))} — ${p.kind === 'stamp' ? 'نموذج تبصيم' : 'كشف'} — ${esc(p.byName)}</div>`).join('') : '<span class="muted small">لا يوجد</span>'}
    ${j.log.length ? `<h3>سجل العمليات</h3><div class="hist">${j.log.map(a => `<div>${esc(dt(a.at))} — <b>${esc(a.action)}</b> — ${esc(a.name)} ${a.details ? '— ' + esc(a.details) : ''}</div>`).join('')}</div>` : ''}`;
   mm.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const a = b.dataset.a;
@@ -497,17 +498,17 @@ function showRequest(id) {
 /* ============ السائقون: الملف + الطباعة + التبصيم + واتساب ============ */
 function vDrivers(m) {
   m.innerHTML = `<div class="card"><div class="row"><input id="dq" type="search" class="grow" placeholder="ابحث باسم السائق أو رقم الهوية">
-   <label class="chk"><input type="checkbox" id="du"> فقط من لديه مخالفات لم تُبصم</label><label class="chk"><input type="checkbox" id="dn"> لم تُرسل له</label></div></div><div class="card" id="dl"></div>`;
+   <label class="chk"><input type="checkbox" id="du"> لديه مخالفات غير موثّقة</label><label class="chk"><input type="checkbox" id="dn"> لديه مخالفات لم تُبلّغ</label></div></div><div class="card" id="dl"></div>`;
   const fin = can('finance');
   const go = () => {
     const q = $('dq').value.trim().toLowerCase();
     let l = drivers().filter(d => d.open > 0 || q);
     if (q) l = l.filter(d => (d.name + ' ' + d.iqama).toLowerCase().indexOf(q) > -1);
     if ($('du').checked) l = l.filter(d => d.unstamped > 0);
-    if ($('dn').checked) l = l.filter(d => d.list.some(v => v.status !== 'ملغاة' && !(v.sendCount > 0)));
-    $('dl').innerHTML = !l.length ? '<div class="empty">لا يوجد</div>' : `<div class="scroll"><table class="tbl"><thead><tr><th>السائق</th><th>الهوية</th><th>الجوال</th><th>الكراج</th><th>المخالفات</th><th>لم تُبصم</th><th>لم تُرسل</th>${fin ? '<th>الإجمالي</th>' : ''}</tr></thead><tbody>
+    if ($('dn').checked) l = l.filter(d => d.notSent > 0);
+    $('dl').innerHTML = !l.length ? '<div class="empty">لا يوجد</div>' : `<div class="scroll"><table class="tbl"><thead><tr><th>السائق</th><th>الهوية</th><th>الجوال</th><th>الكراج</th><th>المخالفات</th><th>غير موثّقة</th><th>لم تُبلّغ</th>${fin ? '<th>الإجمالي</th>' : ''}</tr></thead><tbody>
      ${l.slice(0, 800).map(d => { const p = S.phones[d.iqama] || {}; return `<tr class="click" data-d="${esc(d.iqama)}"><td>${esc(d.name)}</td><td class="n">${esc(d.iqama)}</td><td class="n">${esc(p.mob || '—')}</td><td>${esc(p.garage || '')}</td>
-      <td>${d.open}</td><td>${d.unstamped}</td><td>${d.list.filter(v => v.status !== 'ملغاة' && !(v.sendCount > 0)).length}</td>${fin ? `<td class="n">${money(d.total)}</td>` : ''}</tr>`; }).join('')}</tbody></table></div>`;
+      <td>${d.open}</td><td>${d.unstamped}</td><td>${d.notSent}</td>${fin ? `<td class="n">${money(d.total)}</td>` : ''}</tr>`; }).join('')}</tbody></table></div>`;
     $('dl').querySelectorAll('[data-d]').forEach(tr => tr.onclick = () => showDriver(tr.dataset.d));
   };
   ['dq', 'du', 'dn'].forEach(id => $(id).addEventListener('input', go)); go();
@@ -517,12 +518,11 @@ async function showDriver(iqama) {
   const p = S.phones[d.iqama] || {};
   const m = modal('ملف السائق — ' + esc(d.name), `
    <div class="kv"><div><b>الاسم</b>${esc(d.name)}</div><div><b>رقم الهوية</b>${esc(d.iqama)}</div><div><b>الجوال</b>${esc(p.mob || '—')}</div><div><b>الكراج</b>${esc(p.garage || '—')}</div><div><b>الجنسية</b>${esc(p.nat || '—')}</div>
-    <div><b>عدد المخالفات القائمة</b>${d.open}</div><div><b>لم يتم التبصيم</b>${d.unstamped}</div>${can('finance') ? `<div><b>الإجمالي</b>${money(d.total)} ريال</div>` : ''}</div>
+    <div><b>عدد المخالفات القائمة</b>${d.open}</div><div><b>غير موثّقة</b>${d.unstamped}</div><div><b>لم تُبلّغ</b>${d.notSent}</div>${can('finance') ? `<div><b>الإجمالي</b>${money(d.total)} ريال</div>` : ''}</div>
    <div class="note" id="selInfo">اختر المخالفات من الجدول ثم اختر الإجراء.</div>
    <div class="row" style="margin:8px 0">
-    ${can('print') ? '<button class="btn sec" data-k="print" disabled>🖨️ طباعة كشف PDF</button>' : ''}
-    ${can('stamp') ? '<button class="btn" data-k="stampForm" disabled>🖐️ نموذج تبصيم PDF</button><button class="btn" data-k="stampUp" disabled>📤 رفع إثبات التبصيم</button>' : ''}
-    ${can('whatsapp') ? '<button class="btn ok" data-k="wa" disabled>📲 إرسال واتساب</button>' : ''}
+    ${can('whatsapp') ? '<button class="btn ok" data-k="wa" disabled>📲 إرسال واتساب (تبليغ إلكتروني)</button>' : ''}
+    ${can('print') ? '<button class="btn sec" data-k="print" disabled>⬇️ تنزيل كشف PDF</button>' : ''}
     ${can('cancelReq') ? '<button class="btn bad sm" data-k="cancel" disabled>طلب إلغاء</button>' : ''}
     ${can('transferReq') ? '<button class="btn warn sm" data-k="transfer" disabled>طلب تحويل</button>' : ''}
    </div>
@@ -552,8 +552,9 @@ async function showDriver(iqama) {
 }
 
 /* ---------- نموذج «إثبات مخالفة مرورية» (PDF) ---------- */
-function proofPages(d, vs, ref) {
-  const PER = 9, BOX = 5;
+function proofPages(d, vs, ref, mode) {
+  const withBox = mode === 'stamp';            // خانة «المتسبب سائق آخر» والبصمة في نموذج التبصيم فقط
+  const PER = 9, BOX = withBox ? 5 : 9;
   const chunks = []; for (let i = 0; i < vs.length; i += PER) chunks.push(vs.slice(i, i + PER));
   if (!chunks.length) chunks.push([]);
   const needExtra = chunks[chunks.length - 1].length > BOX;
@@ -564,28 +565,28 @@ function proofPages(d, vs, ref) {
    <th style="width:230px">تفاصيل المخالفة<em>Details of the violation</em></th><th>مدينة المخالفة<em>City where the violation occurred</em></th><th>تاريخ المخالفة<em>Date of violation</em></th>
    <th>الوقت<em>Time of violation</em></th><th>رقم التشغيل<em>Operating number</em></th><th>المبلغ<em>Fine amount</em></th></tr>`;
   let idx = 0;
-  const bottom = top => `<div class="other" style="top:${top}px"><div class="h">في حال كان المتسبب سائق اخر</div><p>اسم السائق:</p><p style="margin-top:30px">الهوية :</p></div>
-    <div class="finger" style="top:${top + 92}px">البصمة</div>
-    <div class="signs" style="top:${top + 200}px"><div>مدير قسم المخالفات<img src="${ASSETS.sig1}" style="width:95px;top:-40px"></div>
-     <div>مشرف التشغيل<img src="${ASSETS.sig2}" style="width:150px;top:-26px"></div><div>مدير التشغيل</div><div>الموارد البشرية</div><div>المدير المالي</div></div>`;
+  const bottom = top => (withBox ? `<div class="other" style="top:${top}px"><div class="h">في حال كان المتسبب سائق اخر</div><p>اسم السائق:</p><p style="margin-top:30px">الهوية :</p></div>
+    <div class="finger" style="top:${top + 92}px">البصمة</div>` : '') +
+    `<div class="signs" style="top:${withBox ? top + 200 : Math.min(top + 60, 690)}px"><div>مدير قسم المخالفات<img src="${ASSETS.sig1}" style="width:95px;top:-40px"></div>
+     <div>مشرف التشغيل</div><div>مدير التشغيل<img src="${ASSETS.sig2}" style="width:150px;top:-26px"></div><div>الموارد البشرية</div><div>المدير المالي</div></div>`;
   const pageHtml = (rows, showTotal, showBox, withTable, pi) => {
     const tableH = withTable ? 122 + 52 + rows.length * 46 + (showTotal ? 32 : 0) : 120;
     return `<div class="pf"><img class="wm" src="${ASSETS.wm}"><img class="logo" src="${ASSETS.logo}"><div class="yr">${year}</div><div class="tt"><span>اثبات مخالفة مرورية</span></div>
      ${withTable ? `<table>${head}${rows.map(v => `<tr><td>${++idx}</td><td>${esc(v.vno)}</td><td>${esc(v.iqama)}</td><td>${esc(v.name)}</td><td class="d">${esc(v.descAr)}</td>
        <td>${esc(v.city)}</td><td>${esc(d10(v.dateG))}</td><td>${esc(t5(v.time))}</td><td>${esc(v.opNo)}</td><td>${money(v.amount)}</td></tr>`).join('')}
        ${showTotal ? `<tr class="tot"><td colspan="9">الإجمالي — ${vs.length} مخالفة</td><td>${money(total)}</td></tr>` : ''}</table>` : ''}
-     ${showBox ? bottom(Math.max(tableH + 22, 300)) : ''}
+     ${showBox ? bottom(withBox ? Math.max(tableH + 22, 300) : Math.max(tableH + 30, 260)) : ''}
      <div class="foot"><span>رقم الكشف: ${esc(ref)} — ${esc(d.name)} (${esc(d.iqama)})</span><span>تاريخ الإصدار: ${today}</span><span>صفحة ${pi} من ${nPages}</span></div></div>`;
   };
   chunks.forEach((c, i) => { const last = i === chunks.length - 1; pages.push(pageHtml(c, last, last && !needExtra, true, i + 1)); });
   if (needExtra) pages.push(pageHtml([], false, true, false, nPages));
   return pages;
 }
-async function proofPdf(d, vs, ref) {
+async function proofPdf(d, vs, ref, mode) {
   if (!window.html2canvas || !window.jspdf) throw new Error('مكتبات PDF لم تُحمّل — تأكد من الاتصال بالإنترنت');
   const st = $('pdfStage'); const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  const pages = proofPages(d, vs, ref);
+  const pages = proofPages(d, vs, ref, mode);
   for (let i = 0; i < pages.length; i++) {
     st.innerHTML = pages[i];
     await Promise.all([...st.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
@@ -599,7 +600,7 @@ async function proofPdf(d, vs, ref) {
 async function makeProof(d, sel, kind) {
   const vs = sel.map(vOf).filter(Boolean);
   const j = await api('printLog', { kind, vnos: sel });
-  const pdf = await proofPdf(d, vs, j.id);
+  const pdf = await proofPdf(d, vs, j.id, kind);
   pdf.save((kind === 'stamp' ? 'نموذج_تبصيم_' : 'كشف_مخالفات_') + d.iqama + '_' + j.id + '.pdf');
   toast(kind === 'stamp' ? 'تم إعداد نموذج التبصيم — بعد التبصيم ارفع صورة الإثبات' : 'تم إعداد الكشف');
 }
@@ -624,12 +625,12 @@ ${lines.join('\n')}
 نموذج إثبات المخالفة (PDF):
 ${pdfUrl}
 
-في حال وجود اعتراض يرجى تقديمه خلال ${S.objHours} ساعة (حتى ${dl}) عبر الرابط:
+للإقرار بالمخالفات أو الاعتراض عليها خلال ${S.objHours} ساعة (حتى ${dl}) افتح الرابط:
 ${objUrl}
 *وفي حال عدم الاعتراض خلال المدة المحددة تُعتبر المخالفة ثابتة بحقك.*
 
 Dear ${d.name}, ${vs.length} traffic violation(s) totaling ${money(tot)} SAR have been recorded against you (details in the PDF above).
-To object, submit within ${S.objHours} hours via the link above. If no objection is received within this period, the violation will be considered confirmed.
+To acknowledge or object, open the link above within ${S.objHours} hours. If no objection is received within this period, the violation will be considered confirmed.
 — Northwest Bus`;
 }
 function waDialog(d, sel, parent) {
@@ -637,14 +638,14 @@ function waDialog(d, sel, parent) {
   const p = S.phones[d.iqama] || {};
   const m = modal('إرسال المخالفات عبر واتساب — ' + esc(d.name), `
    <div class="note">سيُجهَّز نموذج «إثبات مخالفة مرورية» PDF لـ <b>${vs.length}</b> مخالفة، ويُحفظ ويُسجَّل الإرسال، ثم يُفتح واتساب برسالة جاهزة فيها رابط النموذج ورابط الاعتراض.
-   <br><b>تنبيه:</b> الإرسال عبر واتساب لا يُعتبر إقراراً من السائق ولا بديلاً عن التبصيم.</div>
+   <br>يستطيع السائق من الرابط <b>الإقرار</b> بالمخالفات أو <b>الاعتراض</b> عليها. إذا لم يعترض خلال ${S.objHours} ساعة تصبح المخالفة «ثابتة» وموثّقة إلكترونياً بدون ورق.</div>
    <h3>رقم واتساب السائق</h3><div class="row"><input id="wp" class="grow" dir="ltr" value="${esc(p.mob || '')}" placeholder="05xxxxxxxx أو +92xxxxxxxxxx"></div>
    <div class="small muted">${p.mob ? 'الرقم من «إدارة السائقين» — تأكد أنه رقم الواتساب' : 'لم يُعثر على رقم في «إدارة السائقين» — اكتبه يدوياً'}</div>
    <div class="row" style="margin-top:12px"><button class="btn ok" id="wgo">📲 تجهيز وإرسال</button></div><div id="wout"></div>`);
   m.querySelector('#wgo').onclick = e => busy(e.target, async () => {
     const phone = waPhone(m.querySelector('#wp').value);
     if (phone.length < 11) throw new Error('رقم الواتساب غير صحيح');
-    const pdf = await proofPdf(d, vs, 'WA-' + Date.now().toString().slice(-6));
+    const pdf = await proofPdf(d, vs, 'WA-' + Date.now().toString().slice(-6), 'wa');
     const b64 = pdf.output('datauristring');
     const j = await api('sendCreate', { vnos: sel, phone, pdf: b64, method: 'wa.me' });
     const objUrl = OBJ_PAGE + '?t=' + encodeURIComponent(j.objToken);
@@ -777,7 +778,7 @@ function vReports(m) {
   m.innerHTML = `<div class="card no-print"><div class="row">
    <label>من <select id="r1">${months.map(x => `<option>${esc(x)}</option>`).join('')}</select></label><label>إلى <select id="r2">${months.map(x => `<option>${esc(x)}</option>`).join('')}</select></label>
    <label>التقرير <select id="rg"><option value="month">شهري</option><option value="year">سنوي</option><option value="driver">حسب السائق</option><option value="opNo">حسب رقم التشغيل</option><option value="plate">حسب المركبة</option>
-    <option value="city">حسب المدينة</option><option value="type">حسب نوع المخالفة</option><option value="stamp">التبصيم</option><option value="status">الملغاة والمحوّلة والمعلقة</option><option value="sent">الإرسال عبر واتساب</option>
+    <option value="city">حسب المدينة</option><option value="type">حسب نوع المخالفة</option><option value="stamp">التوثيق الإلكتروني</option><option value="status">الملغاة والمحوّلة والمعلقة</option><option value="sent">الإرسال عبر واتساب</option>
     <option value="reqs">الطلبات (المقدمة/المقبولة/المرفوضة)</option><option value="staff">أداء الموظفين والمشرفين</option></select></label>
    <button class="btn sec" id="rx">⬇️ Excel</button><button class="btn sec" id="rp">🖨️ طباعة / PDF</button></div></div><div class="card" id="rout"></div>`;
   $('r1').value = months[0] || ''; $('r2').value = months[months.length - 1] || '';
@@ -787,9 +788,9 @@ function vReports(m) {
     const L = S.V.filter(inR);
     let cols, rows, title = $('rg').selectedOptions[0].text + ` (${a} → ${b})`;
     const agg = keyFn => { const o = {}; L.forEach(v => { const k = keyFn(v) || '—'; const x = o[k] || (o[k] = { k, n: 0, act: 0, amt: 0, st: 0, can: 0, tr: 0, sent: 0 });
-      x.n++; if (v.status === 'ملغاة') x.can++; else { x.act++; x.amt += Number(v.amount || 0); if (v.stamp === 'تم التبصيم') x.st++; } if (v.transferredFrom) x.tr++; if (v.sendCount > 0) x.sent++; });
+      x.n++; if (v.status === 'ملغاة') x.can++; else { x.act++; x.amt += Number(v.amount || 0); if (DONE(v)) x.st++; } if (v.transferredFrom) x.tr++; if (v.sendCount > 0) x.sent++; });
       return Object.values(o); };
-    const std = (lab, list) => { cols = [lab, 'الإجمالي', 'القائمة', 'تم التبصيم', 'لم تُبصم', 'الملغاة', 'المحوّلة', 'أُرسلت', ...(fin ? ['المبلغ (القائمة)'] : [])];
+    const std = (lab, list) => { cols = [lab, 'الإجمالي', 'القائمة', 'موثّقة', 'غير موثّقة', 'الملغاة', 'المحوّلة', 'أُرسلت', ...(fin ? ['المبلغ (القائمة)'] : [])];
       rows = list.map(x => [x.k, x.n, x.act, x.st, x.act - x.st, x.can, x.tr, x.sent, ...(fin ? [x.amt] : [])]); };
     if (g === 'month') std('الشهر', agg(v => v.month).sort((x, y) => x.k.localeCompare(y.k)));
     if (g === 'year') std('السنة', agg(v => String(v.month).slice(0, 4)).sort((x, y) => x.k.localeCompare(y.k)));
@@ -798,7 +799,7 @@ function vReports(m) {
     if (g === 'plate') std('اللوحة', agg(v => v.plate).sort((x, y) => y.n - x.n));
     if (g === 'city') std('المدينة', agg(v => v.city).sort((x, y) => y.n - x.n));
     if (g === 'type') std('المخالفة', agg(v => (v.descAr || v.descEn)).sort((x, y) => y.n - x.n));
-    if (g === 'stamp') std('حالة التبصيم', agg(v => v.status === 'ملغاة' ? 'ملغاة' : (v.stamp || 'لم يتم التبصيم')));
+    if (g === 'stamp') std('حالة التوثيق', agg(v => v.doc || 'لم يُبلّغ'));
     if (g === 'status') std('الحالة', agg(v => v.status === 'ملغاة' ? 'ملغاة' : v.transferredFrom ? 'محوّلة' : v.objection ? 'معترض عليها / ' + v.objection : OPEN_V(v) ? 'عليها طلب معلّق' : 'قائمة'));
     if (g === 'sent') std('الإرسال', agg(v => v.sendCount > 0 ? 'أُرسلت (' + (v.sendCount > 1 ? 'أكثر من مرة' : 'مرة') + ')' : 'لم تُرسل'));
     if (g === 'reqs') { const o = {}; S.R.forEach(r => { const k = r.typeName; const x = o[k] || (o[k] = { k, n: 0 }); x.n++; x[r.status] = (x[r.status] || 0) + 1; });
@@ -865,7 +866,7 @@ async function vUsers(m) {
 }
 function userDlg(u, keys) {
   const p = u.p || {}; const ps = String(p.perms || '').split(',');
-  const preset = { 'موظف': ['dashboard', 'view', 'print', 'stamp', 'drivers', 'cancelReq', 'transferReq', 'docs'], 'مشرف': ['dashboard', 'view', 'print', 'drivers', 'archive', 'reports', 'cancelApprove', 'transferApprove', 'stampApprove', 'docsApprove'] };
+  const preset = { 'موظف': ['dashboard', 'view', 'print', 'whatsapp', 'drivers', 'cancelReq', 'transferReq', 'docs'], 'مشرف': ['dashboard', 'view', 'print', 'drivers', 'archive', 'reports', 'cancelApprove', 'transferApprove', 'stampApprove', 'docsApprove'] };
   const m = modal('صلاحيات — ' + esc(u.name), `<div class="row"><label>الدور <select id="ur"><option>موظف</option><option>مشرف</option><option>مدير</option></select></label>
     <label class="chk"><input type="checkbox" id="ua" ${p.active === 'لا' ? '' : 'checked'}> الحساب مفعّل في نظام المخالفات</label><button class="btn sec sm" id="upre">تعبئة الصلاحيات المقترحة للدور</button></div>
    <h3>الصلاحيات</h3><div class="chips">${keys.filter(k => k !== 'import').map(k => `<label class="chk"><input type="checkbox" data-p="${k}" ${ps.indexOf(k) > -1 ? 'checked' : ''}> ${esc(PERM_LABEL[k] || k)}</label>`).join('')}</div>
