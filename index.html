@@ -243,6 +243,11 @@ async function loadPhones() {
 
 /* ============ مساعدات بيانات ============ */
 const vOf = n => S.V.find(v => String(v.vno) === String(n));
+function driverOptions(exclude) {
+  const m = {}; Object.keys(S.phones).forEach(iq => m[iq] = S.phones[iq].name || '');
+  S.V.forEach(v => { if (!m[v.iqama]) m[v.iqama] = v.name; });
+  return Object.keys(m).filter(iq => iq !== String(exclude)).map(iq => `<option value="${esc(m[iq])} — ${esc(iq)}">`).join('');
+}
 const DONE = v => ['أقرّ السائق إلكترونياً', 'ثابتة — لم يعترض خلال المهلة', 'تم التبصيم (ورقي)'].indexOf(v.doc) > -1;
 function drivers() {
   const m = {};
@@ -399,8 +404,12 @@ function reqDialog(type, vnos, after, existing) {
   const d = existing ? existing.data : {};
   const m = modal(REQ_TITLE[type] + (existing ? ' — تعديل' : ''), `
    <div class="note">المخالفات: ${vs.map(v => `<b>${esc(v.vno)}</b>`).join('، ')} — السائق: ${esc(vs[0] ? vs[0].name : '')} (${esc(vs[0] ? vs[0].iqama : '')})</div>
-   ${type === 'transfer' ? `<h3>السائق الجديد</h3><div class="row"><input id="ni" class="grow" placeholder="رقم هوية السائق الجديد (10 أرقام)" inputmode="numeric" maxlength="10" value="${esc(d.newIqama || '')}">
-     <input id="nn" class="grow" placeholder="اسم السائق الجديد" value="${esc(d.newName || '')}"></div><div class="small muted" id="nh"></div>` : ''}
+   ${type === 'transfer' ? `<h3>السائق الجديد (المتسبب الفعلي)</h3>
+     <input id="nf" list="nfl" class="grow" style="width:100%;margin-bottom:6px" placeholder="🔎 ابحث باسم السائق أو رقم هويته واختره من القائمة">
+     <datalist id="nfl">${driverOptions(vs[0] ? vs[0].iqama : '')}</datalist>
+     <div class="row"><input id="ni" class="grow" placeholder="رقم هوية السائق الجديد (10 أرقام)" inputmode="numeric" maxlength="10" value="${esc(d.newIqama || '')}">
+     <input id="nn" class="grow" placeholder="اسم السائق الجديد" value="${esc(d.newName || '')}"></div><div class="small muted" id="nh"></div>
+     <div class="note small" style="margin-top:6px">بعد اعتماد التحويل تنتقل المخالفة لملف السائق الجديد بحالة «لم يُبلّغ»، ثم تُرسل له عبر الواتساب ليقرّ أو يعترض. سجل السائق السابق يبقى محفوظاً.</div>` : ''}
    <h3>${type === 'stamp' ? 'ملاحظة (اختياري)' : type === 'doc' ? 'الملاحظة / التحديث' : 'السبب'}</h3>
    <textarea id="rr" placeholder="${type === 'cancel' ? 'لماذا تُلغى المخالفة؟' : type === 'transfer' ? 'لماذا تُحوّل؟ (مثال: السائق المسجل كان في إجازة والمتسبب الفعلي فلان)' : ''}">${esc(d.reason || '')}</textarea>
    <h3>${type === 'stamp' ? 'صورة / ملف إثبات التبصيم (إلزامي)' : 'الإثباتات والمرفقات'}</h3>
@@ -410,6 +419,8 @@ function reqDialog(type, vnos, after, existing) {
    <div class="row">${existing ? '' : '<button class="btn sec" id="rd">حفظ كمسودة</button>'}<button class="btn" id="rs">${existing ? 'إعادة التقديم' : 'تقديم للمراجعة'}</button></div>`);
   if (type === 'transfer') {
     const ni = m.querySelector('#ni'), nn = m.querySelector('#nn');
+    const nf = m.querySelector('#nf');
+    nf.oninput = () => { const iq = (nf.value.match(/\b[12]\d{9}\b/) || [])[0]; if (iq) { ni.value = iq; nn.value = ''; ni.oninput(); } };
     ni.oninput = () => { const iq = ni.value.replace(/\D/g, ''); ni.value = iq; const p = S.phones[iq]; const known = S.V.find(v => String(v.iqama) === iq);
       const nm = (p && p.name) || (known && known.name) || ''; if (nm && !nn.value) nn.value = nm; m.querySelector('#nh').textContent = nm ? '✓ ' + nm : ''; };
   }
@@ -486,12 +497,14 @@ function showRequest(id) {
     if (x === 'o-transfer') {
       const iq = prompt('رقم هوية السائق المتسبب (الجديد):', d.otherId || ''); if (!iq) return;
       const nm = prompt('اسم السائق الجديد:', d.otherName || (S.phones[iq] || {}).name || ''); if (!nm) return;
-      return busy(b, async () => { await api('reqReview', { id: r.id, decision: 'approve', outcome: 'transfer', newIqama: iq.trim(), newName: nm.trim(), note }); toast('تم'); m.remove(); await reloadAll(); });
+      return busy(b, async () => { await api('reqReview', { id: r.id, decision: 'approve', outcome: 'transfer', newIqama: iq.trim(), newName: nm.trim(), note }); toast('تم التحويل — أرسلها للسائق الجديد'); m.remove(); await reloadAll(); if (can('whatsapp')) showDriver(iq.trim()); });
     }
     const body = x.startsWith('o-') ? { decision: 'approve', outcome: x.slice(2) } : { decision: x };
     if ((x === 'reject' || x === 'needs') && !note.trim()) return toast('اكتب السبب في خانة الملاحظة', 1);
     if (x === 'approve' && !confirm('اعتماد الطلب وتنفيذ الإجراء؟')) return;
-    busy(b, async () => { await api('reqReview', Object.assign({ id: r.id, note }, body)); toast('تم حفظ القرار'); m.remove(); await reloadAll(); });
+    busy(b, async () => { await api('reqReview', Object.assign({ id: r.id, note }, body));
+      toast(r.type === 'transfer' && x === 'approve' ? 'تم التحويل — أرسل المخالفة للسائق الجديد من ملفه في «السائقون»' : 'تم حفظ القرار'); m.remove(); await reloadAll();
+      if (r.type === 'transfer' && x === 'approve' && d.newIqama && canAny('whatsapp')) showDriver(d.newIqama); });
   });
 }
 
