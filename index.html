@@ -223,8 +223,11 @@ async function boot() {
     $('whoami').textContent = S.me.n + ' · ' + (S.me.admin ? 'مدير النظام' : S.me.role);
     await loadReqs();
     loadPhones();
-    const h = location.hash.slice(1); if (h) S.tab = h;
+    const h = location.hash.slice(1); const dm = h.match(/^driver=(\d+)/);
+    if (dm) { S.tab = can('drivers') ? 'drivers' : (can('view') ? 'list' : S.tab); }
+    else if (h) S.tab = h;
     render();
+    if (dm) { history.replaceState(null, '', location.pathname + location.search + '#' + S.tab); showDriver(dm[1]); }
   } catch (e) {
     $('main').innerHTML = `<div class="card"><h2>🔒 لا يمكن فتح النظام</h2><p>${esc(e.message)}</p></div>`;
   }
@@ -904,7 +907,7 @@ async function vAudit(m) {
   go().catch(e => $('ll').textContent = e.message);
 }
 
-window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== S.tab && S.me) { S.tab = h; render(); } });
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (!S.me) return; const dm = h.match(/^driver=(\d+)/); if (dm) { history.replaceState(null, '', location.pathname + location.search + '#' + S.tab); reloadAll().then(() => showDriver(dm[1])); return; } if (h && h !== S.tab) { S.tab = h; render(); } });
 if (window.NWAuth) boot();
 </script>
 </body>
