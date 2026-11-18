@@ -20,6 +20,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .top h1{margin:0;font-size:19px}.top small{display:block;opacity:.8;font-size:12px}
 .top a{color:#fff;text-decoration:none;background:rgba(255,255,255,.16);padding:7px 13px;border-radius:999px;font-size:13px;white-space:nowrap}
 .wrap{max-width:1400px;margin:0 auto;padding:12px}
+.topr{display:flex;align-items:center;gap:10px}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
 .tab{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;cursor:pointer;white-space:nowrap;font-weight:600;position:relative}
 .tab.on{background:var(--brand);color:#fff;border-color:var(--brand)}
@@ -101,7 +102,7 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 <body>
 <header class="top">
   <div><h1>📋 نظام المخالفات المرورية</h1><small id="whoami">Traffic Violations — e-Documentation</small></div>
-  <a href="https://hanode40-sketch.github.io/all-op/">← أدوات التشغيل</a>
+  <div class="topr"><a href="https://hanode40-sketch.github.io/all-op/">← أدوات التشغيل</a></div>
 </header>
 <div class="wrap">
   <nav class="tabs" id="tabs"></nav>
@@ -197,7 +198,6 @@ const TABS = [
   { id: 'vehicles', ar: 'المركبات', ok: () => canAny('vehicles', 'view') },
   { id: 'reports', ar: 'التقارير', ok: () => can('reports') },
   { id: 'archive', ar: 'الأرشيف', ok: () => can('archive') },
-  { id: 'users', ar: 'المستخدمون والصلاحيات', ok: () => S.me.admin },
   { id: 'audit', ar: 'سجل العمليات', ok: () => can('audit') }
 ];
 function renderTabs() {
@@ -210,7 +210,7 @@ function renderTabs() {
 function render() {
   renderTabs();
   const m = $('main');
-  const f = { dash: vDash, list: vList, drivers: vDrivers, reqs: vReqs, import: vImport, vehicles: vVehicles, reports: vReports, archive: vArchive, users: vUsers, audit: vAudit }[S.tab];
+  const f = { dash: vDash, list: vList, drivers: vDrivers, reqs: vReqs, import: vImport, vehicles: vVehicles, reports: vReports, archive: vArchive, audit: vAudit }[S.tab];
   if (!f) { m.innerHTML = '<div class="card empty">لا توجد صفحات متاحة لحسابك.</div>'; return; }
   try { f(m); } catch (e) { console.error(e); m.innerHTML = `<div class="card bad">${esc(e.message)}</div>`; }
 }
@@ -864,38 +864,6 @@ function vArchive(m) {
 }
 
 /* ============ المستخدمون والصلاحيات ============ */
-async function vUsers(m) {
-  m.innerHTML = '<div class="loader">…</div>';
-  let j; try { j = await api('users'); } catch (e) { m.innerHTML = `<div class="card bad">${esc(e.message)}</div>`; return; }
-  const P = {}; j.perms.forEach(p => P[String(p.username).toLowerCase()] = p);
-  const list = j.users.map(u => Object.assign({}, u, { p: P[u.username] })).concat(j.perms.filter(p => !j.users.find(u => u.username === String(p.username).toLowerCase())).map(p => ({ username: p.username, name: p.name, p })));
-  m.innerHTML = `<div class="card"><h2>المستخدمون والصلاحيات</h2><p class="small muted">المستخدمون من نظام الدخول الموحّد. كل صلاحية مستقلة وتُفعّل لكل حساب على حدة. صلاحية «استيراد Excel» حصرية للمدير ولا يمكن منحها. صاحب دور «مدير» في الدخول الموحّد مدير هنا تلقائياً.</p>
-   <input id="uq" type="search" placeholder="بحث" style="margin-bottom:8px"><div class="scroll"><table class="tbl"><thead><tr><th>المستخدم</th><th>الدور في الدخول</th><th>الدور هنا</th><th>الصلاحيات</th><th></th></tr></thead><tbody id="ub"></tbody></table></div></div>`;
-  const draw = () => { const q = $('uq').value.trim().toLowerCase();
-    $('ub').innerHTML = list.filter(u => !q || (u.name + ' ' + u.username).toLowerCase().indexOf(q) > -1).map(u => { const p = u.p || {}; const ps = String(p.perms || '').split(',').filter(Boolean);
-      return `<tr><td><b>${esc(u.name)}</b><br><span class="small muted">${esc(u.username)}</span>${u.loginActive === false ? ' ' + pill('غير فعّال في الدخول') : ''}</td><td>${esc(u.loginRole || '')}</td>
-       <td>${u.loginRole === 'مدير' ? pill('مدير (تلقائي)') : p.role ? pill(p.role + (p.active === 'لا' ? ' — معطّل' : '')) : '<span class="muted small">لا يوجد</span>'}</td>
-       <td class="small">${u.loginRole === 'مدير' ? 'كل الصلاحيات' : ps.map(x => PERM_LABEL[x] || x).join('، ') || '—'}</td><td>${u.loginRole === 'مدير' || u.username === S.me.u ? '' : `<button class="btn sm" data-u="${esc(u.username)}">تعديل</button>`}</td></tr>`; }).join('');
-    $('ub').querySelectorAll('[data-u]').forEach(b => b.onclick = () => userDlg(list.find(x => x.username === b.dataset.u), j.permKeys));
-  };
-  $('uq').oninput = draw; draw();
-}
-function userDlg(u, keys) {
-  const p = u.p || {}; const ps = String(p.perms || '').split(',');
-  const preset = { 'موظف': ['dashboard', 'view', 'print', 'whatsapp', 'drivers', 'cancelReq', 'transferReq', 'docs'], 'مشرف': ['dashboard', 'view', 'print', 'drivers', 'archive', 'reports', 'cancelApprove', 'transferApprove', 'stampApprove', 'docsApprove'] };
-  const m = modal('صلاحيات — ' + esc(u.name), `<div class="row"><label>الدور <select id="ur"><option>موظف</option><option>مشرف</option><option>مدير</option></select></label>
-    <label class="chk"><input type="checkbox" id="ua" ${p.active === 'لا' ? '' : 'checked'}> الحساب مفعّل في نظام المخالفات</label><button class="btn sec sm" id="upre">تعبئة الصلاحيات المقترحة للدور</button></div>
-   <h3>الصلاحيات</h3><div class="chips">${keys.filter(k => k !== 'import').map(k => `<label class="chk"><input type="checkbox" data-p="${k}" ${ps.indexOf(k) > -1 ? 'checked' : ''}> ${esc(PERM_LABEL[k] || k)}</label>`).join('')}</div>
-   <p class="small muted">الدور «مدير» هنا يعطي كل الصلاحيات الإدارية عدا ما يخص الحساب نفسه. الصلاحيات لا تُمنح تلقائياً للموظف أو المشرف — حدّدها لكل حساب.</p>
-   <button class="btn" id="us">حفظ</button>`);
-  m.querySelector('#ur').value = p.role || 'موظف';
-  m.querySelector('#upre').onclick = () => { const r = m.querySelector('#ur').value; const l = preset[r] || keys; m.querySelectorAll('[data-p]').forEach(c => c.checked = l.indexOf(c.dataset.p) > -1); };
-  m.querySelector('#us').onclick = e => busy(e.target, async () => {
-    await api('userSave', { username: u.username, name: u.name, role: m.querySelector('#ur').value, active: m.querySelector('#ua').checked, perms: [...m.querySelectorAll('[data-p]:checked')].map(c => c.dataset.p) });
-    toast('تم حفظ الصلاحيات'); m.remove(); vUsers($('main'));
-  });
-}
-
 /* ============ سجل العمليات ============ */
 async function vAudit(m) {
   m.innerHTML = `<div class="card"><div class="row"><input id="lq" type="search" class="grow" placeholder="بحث في السجل (مستخدم، رقم مخالفة، إجراء…)"><button class="btn sec" id="lg">بحث</button><button class="btn sec" id="lx">⬇️ Excel</button></div></div><div class="card" id="ll"><div class="loader">…</div></div>`;
