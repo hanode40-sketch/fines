@@ -97,6 +97,40 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 .pf .foot{position:absolute;left:18px;right:18px;bottom:8px;display:flex;justify-content:space-between;font-size:10.5px;color:#555}
 @media print{.top,.tabs,.no-print,.btn{display:none!important}.card{box-shadow:none;border:0}.scroll{max-height:none;overflow:visible;border:0}body{background:#fff}}
 @media (max-width:700px){.tbl{font-size:12px}.kv{grid-template-columns:1fr 1fr}}
+
+.dhead{flex-wrap:wrap;gap:10px}.dmon{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 12px;box-shadow:var(--sh)}
+.dmon select{font-weight:700;min-width:170px}.dsel{font-size:14px;font-weight:700;background:var(--brand);color:#fff;border-radius:999px;padding:3px 12px;vertical-align:middle}
+.col{cursor:pointer}.col.dim{opacity:.35}.col.on i{background:var(--acc)}.col:hover{opacity:1}
+/* ===== لوحة التحكم ===== */
+.dhead{display:flex;justify-content:space-between;align-items:flex-end;margin:2px 2px 12px}.dhead h1{margin:0;font-size:22px}
+.dks{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:12px}
+.dk{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.dk::before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:var(--brand)}
+.dk.hot::before{background:var(--bad)}.dk.hot .dk-v{color:var(--bad)}
+.dk-ic{width:44px;height:44px;flex-shrink:0;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;background:color-mix(in srgb,var(--brand) 12%,var(--card))}
+.dk-l{color:var(--muted);font-size:13px;font-weight:600}.dk-v{font-size:28px;font-weight:800;line-height:1.25;font-variant-numeric:tabular-nums}.dk-v small{font-size:13px;color:var(--muted);font-weight:600}
+.dk-s{color:var(--muted);font-size:12px;margin-top:2px}
+.prog{height:7px;border-radius:99px;background:var(--soft);border:1px solid var(--line);overflow:hidden;margin:6px 0 2px}.prog i{display:block;height:100%;background:var(--ok);border-radius:99px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0}.dgrid>*{min-width:0}.hb-t span{min-width:0}.dks>*{min-width:0}@media(max-width:900px){.dgrid{grid-template-columns:1fr}}
+.ch{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.ch h2{margin:0}
+.stack{display:flex;height:16px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:14px}.stack i{display:block;min-width:4px}
+.lgd{display:flex;flex-direction:column;gap:12px}.lg-h{display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:5px}
+.lgd .lg-l{flex:1}.lg-p{min-width:44px;text-align:end}.lgd b{font-variant-numeric:tabular-nums}.dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.das{display:flex;flex-direction:column;gap:8px}
+.da{display:flex;align-items:center;gap:12px;width:100%;text-align:start;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;color:inherit;font:inherit;border-inline-start:4px solid var(--tone)}
+.da:hover{border-color:var(--tone)}.da.bad{--tone:var(--bad)}.da.warn{--tone:var(--warn)}.da.brand{--tone:var(--brand)}.da.zero{--tone:var(--line);opacity:.65}
+.da-ic{font-size:20px}.da-t{flex:1;display:flex;flex-direction:column}.da-t small{color:var(--muted);font-size:12px}.da-v{font-size:22px;font-weight:800;color:var(--tone);font-variant-numeric:tabular-nums}.da.zero .da-v{color:var(--muted)}
+.hb{display:flex;flex-direction:column;gap:10px}.hb-t{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:4px}.hb-t span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb-t b{white-space:nowrap}
+.hb-b{height:8px;background:var(--soft);border-radius:99px;overflow:hidden}.hb-b i{display:block;height:100%;background:var(--acc);border-radius:99px}
+.cols{display:flex;align-items:flex-end;gap:10px;height:230px;padding:6px 4px 0;border-bottom:1px solid var(--line)}
+.col{flex:1;min-width:0;max-width:70px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.col i{display:block;width:100%;background:var(--brand);border-radius:8px 8px 0 0}.col b{font-size:13px}.col span{font-size:11.5px;color:var(--muted);margin-bottom:-22px}
+.cols{margin-bottom:24px}
+.dtbl td{vertical-align:middle;padding:9px 10px}.rk{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:var(--soft);border:1px solid var(--line)}
+.dtbl tr:nth-child(-n+3) .rk{background:var(--acc);color:#fff;border-color:var(--acc)}
+.mini{display:flex;align-items:center;gap:8px}.mini i{display:block;height:8px;background:var(--brand);border-radius:99px;min-width:4px}.mini b{font-size:13px}
+.pill.pbad{background:color-mix(in srgb,var(--bad) 14%,var(--card));color:var(--bad);border-color:transparent}.pill.pok{background:color-mix(in srgb,var(--ok) 14%,var(--card));color:var(--ok);border-color:transparent}
+.btn.sm{padding:5px 11px;font-size:12.5px}
 </style>
 </head>
 <body>
@@ -219,7 +253,7 @@ function render() {
 async function boot() {
   try {
     const j = await api('bootstrap');
-    S.me = j.me; S.V = j.violations || []; S.VE = j.vehicles || []; S.objHours = j.objHours || 48;
+    S.me = j.me; S.V = j.violations || []; try { S.dashMonth = sessionStorage.getItem('finesDashMonth') || ''; } catch (e) {} S.VE = j.vehicles || []; S.objHours = j.objHours || 48;
     $('whoami').textContent = S.me.n + ' · ' + (S.me.admin ? 'مدير النظام' : S.me.role);
     await loadReqs();
     loadPhones();
@@ -290,34 +324,67 @@ const selected = root => [...root.querySelectorAll('[data-s]:checked')].map(c =>
 
 /* ============ لوحة التحكم ============ */
 function vDash(m) {
-  const act = S.V.filter(v => v.status !== 'ملغاة');
-  const fin = can('finance');
+  const all = S.V.filter(v => v.status !== 'ملغاة');
+  const monthsAll = uniq(all.map(v => v.month).filter(Boolean)).sort().reverse();
+  if (S.dashMonth && monthsAll.indexOf(S.dashMonth) < 0) S.dashMonth = '';
+  const sel = S.dashMonth || '';
+  const act = sel ? all.filter(v => v.month === sel) : all;
+  const mName = k => { const [y, mo] = String(k).split('-'); return (['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][Number(mo) - 1] || k) + ' ' + (y || ''); };
+  const fin = can('finance'), n = act.length, fmt = x => Number(x || 0).toLocaleString('en-US');
   const total = act.reduce((s, v) => s + Number(v.amount || 0), 0);
   const stamped = act.filter(DONE).length; const cnt = k => act.filter(v => v.doc === k).length;
+  const pct = x => n ? Math.round(x * 1000 / n) / 10 : 0;
   const pend = S.R.filter(r => OPEN.indexOf(r.status) > -1).length;
   const objs = S.R.filter(r => r.type === 'objection' && OPEN.indexOf(r.status) > -1).length;
-  const months = {}; act.forEach(v => { months[v.month] = (months[v.month] || 0) + 1; });
+  const drvN = uniq(act.map(v => v.iqama)).length;
+  const now = Date.now(), soon = act.filter(v => v.doc === 'تم التبليغ — ضمن مهلة الاعتراض' && v.deadline && (Date.parse(String(v.deadline).slice(0, 19) + '+03:00') - now) < 864e5).length;
+  // توزيع حالات التوثيق
+  const ST = [['أقرّ السائق إلكترونياً', 'أقرّ إلكترونياً', 'var(--ok)'], ['ثابتة — لم يعترض خلال المهلة', 'ثابتة بعد المهلة', '#0d9488'], ['تم التبصيم (ورقي)', 'تبصيم سابق (ورقي)', '#64748b'],
+    ['تم التبليغ — ضمن مهلة الاعتراض', 'ضمن مهلة الاعتراض', 'var(--warn)'], ['معترض عليها', 'معترض عليها', '#7c3aed'], ['لم يُبلّغ', 'لم يُبلّغ بعد', 'var(--bad)']]
+    .map(([k, l, c]) => ({ k, l, c, v: cnt(k) })).filter(x => x.v);
+  const months = {}; all.forEach(v => { months[v.month] = (months[v.month] || 0) + 1; });
   const mk = Object.keys(months).sort().slice(-12); const mx = Math.max(1, ...mk.map(k => months[k]));
-  const types = {}; act.forEach(v => { const k = (v.descAr || v.descEn || '').replace(/ - رصد آلي|-رصد آلي/, '').slice(0, 60); types[k] = (types[k] || 0) + 1; });
+  const types = {}; act.forEach(v => { const k = (v.descAr || v.descEn || '').replace(/ - رصد آلي|-رصد آلي/, '').trim(); types[k] = (types[k] || 0) + 1; });
   const tk = Object.keys(types).sort((a, b) => types[b] - types[a]).slice(0, 8); const tx = Math.max(1, ...tk.map(k => types[k]));
-  const dr = drivers().slice(0, 10);
-  m.innerHTML = `<div class="kpis">
-    <div class="kpi"><span>المخالفات القائمة</span><b>${act.length.toLocaleString('en-US')}</b></div>
-    ${fin ? `<div class="kpi"><span>إجمالي المبالغ (ريال)</span><b>${money(total)}</b></div>` : ''}
-    <div class="kpi"><span>موثّقة (إقرار / ثابتة / تبصيم سابق)</span><b>${stamped.toLocaleString('en-US')}</b><span>${act.length ? Math.round(stamped * 100 / act.length) : 0}%</span></div>
-    <div class="kpi"><span>لم تُبلّغ بعد</span><b>${cnt('لم يُبلّغ').toLocaleString('en-US')}</b></div>
-    <div class="kpi"><span>ضمن مهلة الاعتراض</span><b>${cnt('تم التبليغ — ضمن مهلة الاعتراض')}</b></div>
-    <div class="kpi"><span>طلبات قيد المراجعة</span><b>${pend}</b></div>
-    <div class="kpi"><span>اعتراضات مفتوحة</span><b>${objs}</b></div>
-    <div class="kpi"><span>عدد السائقين</span><b>${uniq(act.map(v => v.iqama)).length}</b></div>
+  const dmap = {}; act.forEach(v => { const d = dmap[v.iqama] = dmap[v.iqama] || { iqama: v.iqama, name: v.name, open: 0, unstamped: 0, total: 0 }; d.open++; if (!DONE(v)) d.unstamped++; d.total += Number(v.amount || 0); });
+  const dr = Object.values(dmap).sort((a, b) => b.open - a.open || b.total - a.total).slice(0, 10), dx = Math.max(1, ...dr.map(d => d.open));
+  const kpi = (ic, lbl, val, sub, cls) => `<div class="dk ${cls || ''}"><div class="dk-ic">${ic}</div><div><div class="dk-l">${lbl}</div><div class="dk-v">${val}</div>${sub ? `<div class="dk-s">${sub}</div>` : ''}</div></div>`;
+  const act1 = (ic, lbl, v, sub, tab, tone) => `<button class="da ${v ? tone : 'zero'}" data-go="${tab}"><span class="da-ic">${ic}</span><span class="da-t"><b>${lbl}</b><small>${sub}</small></span><span class="da-v">${fmt(v)}</span></button>`;
+  m.innerHTML = `<div class="dhead"><div><h1>لوحة التحكم${sel ? ` <span class="dsel">${esc(mName(sel))}</span>` : ''}</h1><div class="muted small">ملخص المخالفات المرورية والتوثيق الإلكتروني${sel ? ' لشهر الكشف ' + esc(sel) : ' — كل الأشهر'} · آخر تحديث ${new Date().toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
+    <label class="dmon">📅 شهر الكشف <select id="dMon"><option value="">كل الأشهر</option>${monthsAll.map(k => `<option value="${esc(k)}" ${k === sel ? 'selected' : ''}>${esc(mName(k))} (${esc(k)})</option>`).join('')}</select></label></div>
+  <div class="dks">
+    ${kpi('🚦', 'المخالفات القائمة', fmt(n), `على ${fmt(drvN)} سائق`)}
+    ${fin ? kpi('💰', 'إجمالي المبالغ', money(total) + ' <small>ريال</small>', n ? `متوسط ${money(Math.round(total / n))} ريال للمخالفة` : '') : ''}
+    <div class="dk"><div class="dk-ic">✅</div><div style="flex:1"><div class="dk-l">نسبة التوثيق</div><div class="dk-v">${pct(stamped)}%</div>
+      <div class="prog"><i style="width:${pct(stamped)}%"></i></div><div class="dk-s">${fmt(stamped)} موثّقة من ${fmt(n)}</div></div></div>
+    ${kpi('📨', 'لم تُبلّغ بعد', fmt(cnt('لم يُبلّغ')), 'تحتاج إرسال للسائق', cnt('لم يُبلّغ') ? 'hot' : '')}
   </div>
-  <div class="row" style="align-items:stretch">
-   <div class="card grow"><h2>المخالفات حسب شهر الكشف</h2><div class="bars">${mk.map(k => `<div class="b"><span>${esc(k)}</span><i style="width:${months[k] / mx * 70}%"></i><b>${months[k]}</b></div>`).join('') || '<div class="empty">—</div>'}</div></div>
-   <div class="card grow"><h2>أكثر المخالفات تكراراً</h2><div class="bars">${tk.map(k => `<div class="b"><span style="width:200px">${esc(k)}</span><i style="width:${types[k] / tx * 40}%;background:var(--acc)"></i><b>${types[k]}</b></div>`).join('')}</div></div>
+  <div class="dgrid">
+    <div class="card"><div class="ch"><h2>حالة التوثيق</h2><span class="muted small">${fmt(n)} مخالفة</span></div>
+      <div class="stack">${ST.map(x => `<i title="${esc(x.l)}: ${x.v}" style="flex:${x.v};background:${x.c}"></i>`).join('')}</div>
+      <div class="lgd">${ST.map(x => `<div class="lg-r"><div class="lg-h"><span class="dot" style="background:${x.c}"></span><span class="lg-l">${esc(x.l)}</span><b>${fmt(x.v)}</b><span class="muted small lg-p">${pct(x.v)}%</span></div><div class="hb-b"><i style="width:${pct(x.v)}%;background:${x.c}"></i></div></div>`).join('')}</div></div>
+    <div class="card"><div class="ch"><h2>يحتاج إجراء</h2></div><div class="das">
+      ${act1('📨', 'مخالفات لم تُبلّغ', cnt('لم يُبلّغ'), 'أرسلها للسائقين من ملف السائق', 'drivers', 'bad')}
+      ${act1('⏳', 'مهلة تنتهي خلال 24 ساعة', soon, 'تابع مع السائق قبل ثبوتها', 'list', 'warn')}
+      ${act1('📋', 'طلبات قيد المراجعة', pend, 'إلغاء / تحويل / مستندات', 'reqs', 'brand')}
+      ${act1('⚖️', 'اعتراضات مفتوحة', objs, 'بانتظار قرار المشرف', 'reqs', 'brand')}
+    </div></div>
   </div>
-  <div class="card"><h2>أكثر السائقين مخالفات</h2><div class="scroll"><table class="tbl"><thead><tr><th>السائق</th><th>الهوية</th><th>العدد</th><th>غير موثّقة</th>${fin ? '<th>المبلغ</th>' : ''}</tr></thead><tbody>
-   ${dr.map(d => `<tr class="click" data-d="${esc(d.iqama)}"><td>${esc(d.name)}</td><td class="n">${esc(d.iqama)}</td><td>${d.open}</td><td>${d.unstamped}</td>${fin ? `<td class="n">${money(d.total)}</td>` : ''}</tr>`).join('')}</tbody></table></div></div>`;
+  <div class="dgrid">
+    <div class="card"><div class="ch"><h2>أكثر المخالفات تكراراً</h2><span class="muted small">أعلى ${tk.length}</span></div>
+      <div class="hb">${tk.map((k, i) => `<div class="hb-r"><div class="hb-t"><span>${i + 1}. ${esc(k)}</span><b>${fmt(types[k])} <span class="muted small">· ${pct(types[k])}%</span></b></div><div class="hb-b"><i style="width:${types[k] / tx * 100}%"></i></div></div>`).join('') || '<div class="empty">—</div>'}</div></div>
+    <div class="card"><div class="ch"><h2>المخالفات حسب شهر الكشف</h2><span class="muted small">آخر ${mk.length} ${mk.length > 1 ? 'أشهر' : 'شهر'} · اضغط على الشهر لعرضه</span></div>
+      <div class="cols">${mk.map(k => `<div class="col${sel && k !== sel ? ' dim' : ''}${k === sel ? ' on' : ''}" data-mon="${esc(k)}" title="اضغط لعرض ${esc(mName(k))}"><b>${fmt(months[k])}</b><i style="height:${Math.max(4, months[k] / mx * 100)}%"></i><span title="${esc(k)}">${esc(String(k).slice(5) + '/' + String(k).slice(2, 4))}</span></div>`).join('') || '<div class="empty">—</div>'}</div></div>
+  </div>
+  <div class="card"><div class="ch"><h2>أكثر السائقين مخالفات</h2>${canAny('drivers', 'print', 'whatsapp') ? '<button class="btn sec sm" data-go="drivers">عرض كل السائقين ←</button>' : ''}</div>
+   <div class="scroll"><table class="tbl dtbl"><thead><tr><th style="width:36px">#</th><th>السائق</th><th>الهوية</th><th style="width:28%">المخالفات</th><th>غير موثّقة</th>${fin ? '<th>المبلغ (ريال)</th>' : ''}</tr></thead><tbody>
+   ${dr.map((d, i) => `<tr class="click" data-d="${esc(d.iqama)}"><td><span class="rk">${i + 1}</span></td><td><b>${esc(d.name)}</b></td><td class="n muted">${esc(d.iqama)}</td>
+     <td><div class="mini"><i style="width:${d.open / dx * 100}%"></i><b>${d.open}</b></div></td><td>${d.unstamped ? `<span class="pill pbad">${d.unstamped}</span>` : '<span class="pill pok">0</span>'}</td>${fin ? `<td class="n"><b>${money(d.total)}</b></td>` : ''}</tr>`).join('')}</tbody></table></div></div>`;
   m.querySelectorAll('[data-d]').forEach(tr => tr.onclick = () => showDriver(tr.dataset.d));
+  const setMon = k => { S.dashMonth = k; try { sessionStorage.setItem('finesDashMonth', k); } catch (e) {} vDash(m); };
+  $('dMon').onchange = e => setMon(e.target.value);
+  m.querySelectorAll('[data-mon]').forEach(c => c.onclick = () => setMon(c.dataset.mon === sel ? '' : c.dataset.mon));
+  m.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { if (!TABS.find(t => t.id === b.dataset.go && t.ok())) return toast('ليس لديك صلاحية لهذه الصفحة', 1); S.tab = b.dataset.go; location.hash = S.tab; render(); });
 }
 
 /* ============ المخالفات ============ */
