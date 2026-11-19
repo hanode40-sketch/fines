@@ -101,6 +101,26 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 .dhead{flex-wrap:wrap;gap:10px}.dmon{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 12px;box-shadow:var(--sh)}
 .dmon select{font-weight:700;min-width:170px}.dsel{font-size:14px;font-weight:700;background:var(--brand);color:#fff;border-radius:999px;padding:3px 12px;vertical-align:middle}
 .col{cursor:pointer}.col.dim{opacity:.35}.col.on i{background:var(--acc)}.col:hover{opacity:1}
+
+/* ===== الصفحات الداخلية ===== */
+.pv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pv-crumb{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}.pv-crumb a{color:var(--brand);text-decoration:none}.pv-crumb a:hover{text-decoration:underline}
+.pv-title h1{margin:0 2px 12px;font-size:22px}
+.vh{display:flex;justify-content:space-between;gap:16px;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:16px 18px;margin-bottom:12px;position:relative;overflow:hidden}
+.vh::before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:5px;background:var(--brand)}
+.vh-d{font-size:18px;font-weight:800}.vh-e{color:var(--muted);font-size:13px;text-align:right;margin-top:2px}.vh-p{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.vh-a{min-width:150px;text-align:center;border-inline-start:1px solid var(--line);padding-inline-start:16px;display:flex;flex-direction:column;justify-content:center}
+.vh-a span{color:var(--muted);font-size:12.5px}.vh-a b{font-size:30px;font-weight:800;line-height:1.2}.vh-a small{color:var(--muted)}
+.vacts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.vgrid>*{min-width:0}@media(max-width:820px){.vgrid{grid-template-columns:1fr}.vh{flex-direction:column}.vh-a{border:0;padding:0;text-align:start}}
+.vs{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:14px 16px;margin-bottom:12px}
+.vgrid .vs{margin-bottom:0}.vgrid{margin-bottom:12px}
+.vs h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;color:var(--ink)}.vs h3 span{font-size:16px}.vs h3 em{font-style:normal;font-size:11.5px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted)}
+.fl{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}.fl .f.w{grid-column:1/-1}
+.fl .f>span{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-bottom:2px}.fl .f>div{font-size:14px;overflow-wrap:anywhere}
+.vs-none{color:var(--muted);font-size:13px;background:var(--soft);border:1px dashed var(--line);border-radius:10px;padding:10px;text-align:center}
+.tl{display:flex;flex-direction:column;gap:0;border-inline-start:2px solid var(--line);margin-inline-start:6px}
+.tl>div{position:relative;padding:5px 14px;font-size:13px}.tl>div i{position:absolute;inset-inline-start:-6px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--brand);border:2px solid var(--card)}
 /* ===== لوحة التحكم ===== */
 .dhead{display:flex;justify-content:space-between;align-items:flex-end;margin:2px 2px 12px}.dhead h1{margin:0;font-size:22px}
 .dks{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:12px}
@@ -203,6 +223,32 @@ function modal(title, html, wide) {
   document.body.appendChild(m);
   return m;
 }
+/* ===== صفحة داخلية (بدل النافذة المنبثقة) ===== */
+const PV = [];
+function pageView(title, key, label, reopen) {
+  const main = $('main'), top = PV[PV.length - 1], same = !!(top && top.key === key);
+  if (same) top.reopen = reopen;
+  else { if (top) top.y = window.scrollY; else PV.base = window.scrollY; PV.push({ key, label, reopen, y: 0 }); }
+  const tabName = (TABS.find(t => t.id === S.tab) || {}).ar || 'الرئيسية';
+  const prev = PV[PV.length - 2];
+  const crumbs = [tabName].concat(PV.map(x => x.label));
+  const el = document.createElement('div'); el.className = 'pv';
+  el.innerHTML = `<div class="pv-bar"><button class="btn sec sm pv-back">→ رجوع إلى ${esc(prev ? prev.label : tabName)}</button>
+    <div class="pv-crumb">${crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="#" data-cr="${i}">${esc(c)}</a>` : `<b>${esc(c)}</b>`).join('<span>‹</span>')}</div></div>
+    <div class="pv-body"><div class="pv-title"><h1>${title}</h1></div><div class="bd"></div></div>`;
+  const y = same ? window.scrollY : 0;
+  main.innerHTML = ''; main.appendChild(el); window.scrollTo(0, y);
+  el.querySelector('.pv-back').onclick = pvBack;
+  el.querySelectorAll('[data-cr]').forEach(a => a.onclick = e => { e.preventDefault(); pvTo(Number(a.dataset.cr)); });
+  el.remove = () => {};             // للتوافق مع كود النوافذ: الصفحة تبقى وتتحدّث
+  return el;
+}
+function pvTo(i) {                  // 0 = التبويب، 1.. = الصفحات
+  if (i <= 0) { const y = PV.base || 0; PV.length = 0; render(); window.scrollTo(0, y); return; }
+  PV.length = i; const p = PV[i - 1]; Promise.resolve(p.reopen()).then(() => window.scrollTo(0, p.y || 0));
+}
+function pvBack() { pvTo(PV.length - 1); }
+
 async function busy(btn, fn) {
   const t = btn && btn.textContent; if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + t; }
   try { return await fn(); } catch (e) { toast(e.message, 1); throw e; } finally { if (btn) { btn.disabled = false; btn.textContent = t; } }
@@ -239,10 +285,11 @@ function renderTabs() {
   if (!vis.find(t => t.id === S.tab)) S.tab = vis[0] ? vis[0].id : '';
   $('tabs').innerHTML = vis.map(t => { const b = t.badge ? t.badge() : 0;
     return `<button class="tab ${t.id === S.tab ? 'on' : ''}" data-t="${t.id}">${t.ar}${b ? `<span class="bd">${b}</span>` : ''}</button>`; }).join('');
-  $('tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { S.tab = b.dataset.t; location.hash = S.tab; render(); });
+  $('tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { PV.length = 0; S.tab = b.dataset.t; location.hash = S.tab; render(); });
 }
 function render() {
   renderTabs();
+  if (PV.length) { PV[PV.length - 1].reopen(); return; }
   const m = $('main');
   const f = { dash: vDash, list: vList, drivers: vDrivers, reqs: vReqs, import: vImport, vehicles: vVehicles, reports: vReports, archive: vArchive, audit: vAudit }[S.tab];
   if (!f) { m.innerHTML = '<div class="card empty">لا توجد صفحات متاحة لحسابك.</div>'; return; }
@@ -417,40 +464,44 @@ const vCols = () => [['رقم المخالفة', 'vno'], ['رقم الهوية',
   ...(can('finance') ? [['المبلغ', v => Number(v.amount || 0)]] : []), ['التوثيق', 'doc'], ['موعد انتهاء المهلة', v => dt(v.deadline)], ['إقرار السائق', v => dt(v.ackAt)], ['الحالة', 'status'], ['الاعتراض', 'objection'], ['مرات الإرسال', 'sendCount'], ['شهر الكشف', 'month'], ['ملاحظات', 'notes']];
 
 async function showViolation(vno) {
-  const mm = modal('مخالفة رقم ' + esc(vno), '<div class="loader">…</div>', true);
-  let j; try { j = await api('violation', { vno }); } catch (e) { mm.querySelector('.bd').innerHTML = `<div class="bad">${esc(e.message)}</div>`; return; }
+  const mm = pageView('مخالفة رقم ' + esc(vno), 'v:' + vno, 'مخالفة ' + vno, () => showViolation(vno));
+  mm.querySelector('.bd').innerHTML = '<div class="loader">جاري التحميل…</div>';
+  let j; try { j = await api('violation', { vno }); } catch (e) { mm.querySelector('.bd').innerHTML = `<div class="card bad">${esc(e.message)}</div>`; return; }
   const v = j.item;
   const acts = [];
   if (v.status !== 'ملغاة') {
-    if (can('cancelReq')) acts.push(`<button class="btn bad sm" data-a="cancel">طلب إلغاء</button>`);
-    if (can('transferReq')) acts.push(`<button class="btn warn sm" data-a="transfer">طلب تحويل لسائق آخر</button>`);
-    if (can('docs')) acts.push(`<button class="btn sec sm" data-a="doc">رفع مستند / ملاحظة</button>`);
+    if (can('cancelReq')) acts.push(`<button class="btn bad sm" data-a="cancel">✖ طلب إلغاء</button>`);
+    if (can('transferReq')) acts.push(`<button class="btn warn sm" data-a="transfer">⇄ طلب تحويل لسائق آخر</button>`);
+    if (can('docs')) acts.push(`<button class="btn sec sm" data-a="doc">📎 رفع مستند / ملاحظة</button>`);
   }
-  if (canAny('drivers', 'print', 'whatsapp')) acts.push(`<button class="btn sec sm" data-a="driver">ملف السائق</button>`);
-  if (S.me.admin) acts.push(`<button class="btn sec sm" data-a="resp">تصنيف المسؤولية (المدير)</button>`);
+  if (canAny('drivers', 'print', 'whatsapp')) acts.push(`<button class="btn sec sm" data-a="driver">👤 ملف السائق</button>`);
+  if (S.me.admin) acts.push(`<button class="btn sec sm" data-a="resp">⚙️ تصنيف المسؤولية</button>`);
+  const f = (k, val, wide) => `<div class="f${wide ? ' w' : ''}"><span>${k}</span><div>${val == null || val === '' ? '—' : val}</div></div>`;
+  const sec = (ic, t, body, n) => `<section class="vs"><h3><span>${ic}</span>${t}${n != null ? `<em>${n}</em>` : ''}</h3>${body}</section>`;
+  const none = t => `<div class="vs-none">${t}</div>`;
   mm.querySelector('.bd').innerHTML = `
-   <div class="kv">
-    <div><b>رقم المخالفة</b>${esc(v.vno)}</div><div><b>السائق</b>${esc(v.name)}</div><div><b>رقم الهوية</b>${esc(v.iqama)}</div>
-    <div><b>المخالفة</b>${esc(v.descAr)}<br><span class="small muted" dir="ltr">${esc(v.descEn)}</span></div>
-    <div><b>المدينة</b>${esc(v.city)}</div><div><b>التاريخ</b>${esc(d10(v.dateG))} — ${esc(v.dateH)} — ${esc(t5(v.time))}</div>
-    <div><b>اللوحة</b>${esc(v.plate)}</div><div><b>رقم التشغيل</b>${esc(v.opNo)}</div><div><b>المبلغ</b>${money(v.amount)}${v.origAmount ? ' (الأصلي ' + money(v.origAmount) + ')' : ''}</div>
-    <div><b>التوثيق الإلكتروني</b>${pill(v.doc || 'لم يُبلّغ')}${v.notifiedAt ? `<br><span class="small">أول تبليغ ${esc(dt(v.notifiedAt))} — المهلة حتى ${esc(dt(v.deadline))}</span>` : ''}${v.ackAt ? `<br><span class="small">أقرّ السائق ${esc(dt(v.ackAt))}</span>` : ''}</div>
-    <div><b>الحالة</b>${pill(v.status || 'قائمة')} ${v.objection ? pill(v.objection) : ''}</div><div><b>المسؤولية</b>مسؤولية ${esc(v.resp || 'السائق')}</div>
-    <div><b>شهر الكشف</b>${esc(v.month)}</div><div><b>الإرسال واتساب</b>${v.sendCount > 0 ? esc(v.sendCount) + ' مرة — آخرها ' + esc(dt(v.lastSentAt)) : 'لم تُرسل'}</div>
-    <div><b>الاستيراد</b>${esc(v.importedBy)} — ${esc(dt(v.importedAt))}</div>${v.transferredFrom ? `<div><b>محوّلة من</b>${esc(v.transferredFrom)}</div>` : ''}
-    ${v.notes ? `<div><b>ملاحظات</b>${esc(v.notes)}</div>` : ''}${v.actualName ? `<div><b>المتسبب الفعلي (من الكشف)</b>${esc(v.actualName)} ${esc(v.actualId)}</div>` : ''}
+   <div class="vh">
+    <div class="vh-m"><div class="vh-d">${esc(v.descAr)}</div><div class="vh-e" dir="ltr">${esc(v.descEn)}</div>
+      <div class="vh-p">${pill(v.status || 'قائمة')} ${pill(v.doc || 'لم يُبلّغ')} ${v.objection ? pill(v.objection) : ''} <span class="pill">مسؤولية ${esc(v.resp || 'السائق')}</span></div></div>
+    <div class="vh-a"><span>المبلغ</span><b>${money(v.amount)}</b><small>ريال${v.origAmount ? ' · الأصلي ' + money(v.origAmount) : ''}</small></div>
    </div>
-   <div class="row">${acts.join('')}</div>
-   <h3>المستندات والإثباتات المعتمدة</h3>${filesHtml(v.docs)}
-   <h3>الطلبات</h3>${j.requests.length ? reqMini(j.requests) : '<span class="muted small">لا توجد</span>'}
-   <h3>الإرسال عبر واتساب</h3>${j.sends.length ? j.sends.map(s => `<div class="small">📲 ${esc(dt(s.at))} — إلى ${esc(s.phone)} — بواسطة ${esc(s.byName)} ${s.pdfUrl ? `— <a href="${esc(s.pdfUrl)}" target="_blank">الكشف</a>` : ''}</div>`).join('') : '<span class="muted small">لا يوجد</span>'}
-   <h3>الكشوف المحمّلة</h3>${j.prints.length ? j.prints.map(p => `<div class="small">🖨️ ${esc(dt(p.at))} — ${p.kind === 'stamp' ? 'نموذج تبصيم' : 'كشف'} — ${esc(p.byName)}</div>`).join('') : '<span class="muted small">لا يوجد</span>'}
-   ${j.log.length ? `<h3>سجل العمليات</h3><div class="hist">${j.log.map(a => `<div>${esc(dt(a.at))} — <b>${esc(a.action)}</b> — ${esc(a.name)} ${a.details ? '— ' + esc(a.details) : ''}</div>`).join('')}</div>` : ''}`;
+   ${acts.length ? `<div class="vacts">${acts.join('')}</div>` : ''}
+   <div class="vgrid">
+    ${sec('📄', 'بيانات المخالفة', `<div class="fl">${f('رقم المخالفة', `<b dir="ltr">${esc(v.vno)}</b>`)}${f('التاريخ', `${esc(d10(v.dateG))} · ${esc(t5(v.time))}<br><span class="muted small">${esc(v.dateH)} هـ</span>`)}${f('المدينة', esc(v.city))}${f('اللوحة', esc(v.plate))}${f('رقم التشغيل', esc(v.opNo))}${f('شهر الكشف', esc(v.month))}</div>`)}
+    ${sec('👤', 'السائق', `<div class="fl">${f('الاسم', `<b>${esc(v.name)}</b>`, 1)}${f('رقم الهوية', esc(v.iqama))}${v.transferredFrom ? f('محوّلة من', esc(v.transferredFrom), 1) : ''}${v.actualName ? f('المتسبب الفعلي (من الكشف)', esc(v.actualName) + ' ' + esc(v.actualId), 1) : ''}</div>`)}
+    ${sec('🔔', 'التوثيق الإلكتروني', `<div class="fl">${f('الحالة', pill(v.doc || 'لم يُبلّغ'), 1)}${f('أول تبليغ', v.notifiedAt ? esc(dt(v.notifiedAt)) : '')}${f('نهاية المهلة', v.deadline ? esc(dt(v.deadline)) : '')}${f('إقرار السائق', v.ackAt ? esc(dt(v.ackAt)) : '')}${f('الإرسال واتساب', v.sendCount > 0 ? esc(v.sendCount) + ' مرة' : 'لم تُرسل')}</div>`)}
+    ${sec('🗂️', 'السجل', `<div class="fl">${f('الاستيراد', `${esc(v.importedBy)}<br><span class="muted small">${esc(dt(v.importedAt))}</span>`, 1)}${v.notes ? f('ملاحظات', esc(v.notes), 1) : ''}</div>`)}
+   </div>
+   ${sec('📎', 'المستندات والإثباتات المعتمدة', (v.docs && String(v.docs).length > 2) ? filesHtml(v.docs) : none('لا توجد مستندات'))}
+   ${sec('📋', 'الطلبات', j.requests.length ? reqMini(j.requests) : none('لا توجد طلبات'), j.requests.length)}
+   ${sec('📲', 'الإرسال عبر واتساب', j.sends.length ? `<div class="scroll" style="max-height:240px"><table class="tbl"><thead><tr><th>التاريخ</th><th>إلى</th><th>بواسطة</th><th>الكشف</th></tr></thead><tbody>${j.sends.map(s => `<tr><td class="n">${esc(dt(s.at))}</td><td class="n">${esc(s.phone)}</td><td>${esc(s.byName)}</td><td>${s.pdfUrl ? `<a href="${esc(s.pdfUrl)}" target="_blank">📄 فتح</a>` : '—'}</td></tr>`).join('')}</tbody></table></div>` : none('لم تُرسل بعد'), j.sends.length)}
+   ${j.prints.length ? sec('🖨️', 'الكشوف المحمّلة', `<div class="tl">${j.prints.map(p => `<div><i></i><span class="n">${esc(dt(p.at))}</span> — ${p.kind === 'stamp' ? 'نموذج تبصيم' : 'كشف PDF'} — ${esc(p.byName)}</div>`).join('')}</div>`, j.prints.length) : ''}
+   ${j.log.length ? sec('🕘', 'سجل العمليات', `<div class="tl">${j.log.map(a => `<div><i></i><span class="n">${esc(dt(a.at))}</span> — <b>${esc(a.action)}</b> — ${esc(a.name)}${a.details ? ` <span class="muted">— ${esc(a.details)}</span>` : ''}</div>`).join('')}</div>`, j.log.length) : ''}`;
   mm.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const a = b.dataset.a;
-    if (a === 'driver') { mm.remove(); showDriver(v.iqama); }
-    else if (a === 'resp') respDialog(v, mm);
-    else reqDialog(a, [v.vno], () => mm.remove());
+    if (a === 'driver') showDriver(v.iqama);
+    else if (a === 'resp') respDialog(v, null);
+    else reqDialog(a, [v.vno], () => {});
   });
 }
 function reqMini(list) {
@@ -599,7 +650,9 @@ function vDrivers(m) {
 async function showDriver(iqama) {
   const d = drivers().find(x => x.iqama === String(iqama)); if (!d) return toast('لا توجد مخالفات لهذا السائق', 1);
   const p = S.phones[d.iqama] || {};
-  const m = modal('ملف السائق — ' + esc(d.name), `
+  const m = pageView('ملف السائق — ' + esc(d.name), 'd:' + d.iqama, 'ملف ' + d.name, () => showDriver(d.iqama));
+  m.querySelector('.bd').classList.add('card');
+  m.querySelector('.bd').innerHTML = (`
    <div class="kv"><div><b>الاسم</b>${esc(d.name)}</div><div><b>رقم الهوية</b>${esc(d.iqama)}</div><div><b>الجوال</b>${esc(p.mob || '—')}</div><div><b>الكراج</b>${esc(p.garage || '—')}</div><div><b>الجنسية</b>${esc(p.nat || '—')}</div>
     <div><b>عدد المخالفات القائمة</b>${d.open}</div><div><b>غير موثّقة</b>${d.unstamped}</div><div><b>لم تُبلّغ</b>${d.notSent}</div>${can('finance') ? `<div><b>الإجمالي</b>${money(d.total)} ريال</div>` : ''}</div>
    <div class="note" id="selInfo">اختر المخالفات من الجدول ثم اختر الإجراء.</div>
@@ -611,7 +664,7 @@ async function showDriver(iqama) {
    </div>
    <div id="dv">${vTable(d.list.filter(v => v.status !== 'ملغاة'), { sel: true })}</div>
    <h3>سجل الإرسال والطباعة</h3><div id="dlog" class="small muted">…</div>
-   <h3>الطلبات</h3>${reqMini(S.R.filter(r => String(r.iqama) === d.iqama)) }`, true);
+   <h3>الطلبات</h3>${reqMini(S.R.filter(r => String(r.iqama) === d.iqama)) }`);
   const upd = sel => {
     const vs = sel.map(vOf); const tot = vs.reduce((s, v) => s + Number(v.amount || 0), 0);
     m.querySelector('#selInfo').textContent = sel.length ? `تم اختيار ${sel.length} مخالفة` + (can('finance') ? ` — ${money(tot)} ريال` : '') : 'اختر المخالفات من الجدول ثم اختر الإجراء.';
