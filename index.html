@@ -118,6 +118,8 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 .vs h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;color:var(--ink)}.vs h3 span{font-size:16px}.vs h3 em{font-style:normal;font-size:11.5px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted)}
 .fl{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}.fl .f.w{grid-column:1/-1}
 .fl .f>span{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-bottom:2px}.fl .f>div{font-size:14px;overflow-wrap:anywhere}
+.vreason{font-size:14.5px;line-height:1.8;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;white-space:pre-wrap}
+.vdec{border:2px solid var(--brand)}.vdec textarea{width:100%;min-height:90px;margin-bottom:8px}.vdec #ra{align-items:flex-start}
 .vs-none{color:var(--muted);font-size:13px;background:var(--soft);border:1px dashed var(--line);border-radius:10px;padding:10px;text-align:center}
 .tl{display:flex;flex-direction:column;gap:0;border-inline-start:2px solid var(--line);margin-inline-start:6px}
 .tl>div{position:relative;padding:5px 14px;font-size:13px}.tl>div i{position:absolute;inset-inline-start:-6px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--brand);border:2px solid var(--card)}
@@ -581,17 +583,25 @@ function showRequest(id) {
   const d = r.data || {}; const mine = r.createdBy === S.me.u; const open = OPEN.indexOf(r.status) > -1;
   const vs = String(r.vnos).split(',').map(n => vOf(n) || { vno: n });
   const reviewable = open && canReview(r) && !mine;
-  const m = modal(esc(r.typeName) + ' — ' + esc(r.id), `
-   <div class="kv"><div><b>الحالة</b>${pill(r.status)}</div><div><b>مقدم الطلب</b>${esc(r.createdByName)} — ${esc(dt(r.createdAt))}</div>
-    <div><b>السائق</b>${esc(r.driverName)} (${esc(r.iqama)})</div>${r.reviewerName ? `<div><b>المراجع</b>${esc(r.reviewerName)} ${r.reviewedAt ? '— ' + esc(dt(r.reviewedAt)) : ''}</div>` : ''}
-    ${r.type === 'transfer' || d.newIqama ? `<div><b>السائق الجديد</b>${esc(d.newName || '')} (${esc(d.newIqama || '')})</div>` : ''}
-    ${d.otherName || d.otherId ? `<div><b>المتسبب حسب السائق</b>${esc(d.otherName || '')} ${esc(d.otherId || '')}</div>` : ''}
-    ${r.reviewNote ? `<div><b>ملاحظة المراجع / سبب الرفض</b><span class="bad">${esc(r.reviewNote)}</span></div>` : ''}</div>
-   <div class="note"><b>${r.type === 'objection' ? 'سبب الاعتراض' : 'السبب / الملاحظة'}:</b> ${esc(d.reason || '—')}</div>
-   <h3>المرفقات</h3>${filesHtml(d.files)}
-   <h3>المخالفات</h3>${vTable(vs.filter(v => v.iqama !== undefined))}
-   <h3>سجل الطلب</h3><div class="hist">${(r.history || []).map(h => `<div>${esc(dt(h.at))} — ${pill(h.status)} — ${esc(h.n)} ${h.note ? '— ' + esc(h.note) : ''}</div>`).join('')}</div>
-   <div class="row" style="margin-top:12px" id="ra"></div>`, true);
+  const m = pageView(esc(r.typeName) + ' — ' + esc(r.id), 'r:' + r.id, 'طلب ' + r.id, () => showRequest(id));
+  const f = (k, val, wide) => `<div class="f${wide ? ' w' : ''}"><span>${k}</span><div>${val == null || val === '' ? '—' : val}</div></div>`;
+  const sec = (ic, t, body, n, cls) => `<section class="vs ${cls || ''}"><h3><span>${ic}</span>${t}${n != null ? `<em>${n}</em>` : ''}</h3>${body}</section>`;
+  const tot = vs.reduce((s2, v) => s2 + Number(v.amount || 0), 0);
+  m.querySelector('.bd').innerHTML = `
+   <div class="vh">
+    <div class="vh-m"><div class="vh-d">${esc(r.typeName)}</div><div class="vh-e">رقم الطلب <span dir="ltr">${esc(r.id)}</span> · ${esc(r.driverName)} (${esc(r.iqama)})</div>
+      <div class="vh-p">${pill(r.status)} <span class="pill">${vs.length} مخالفة</span></div></div>
+    <div class="vh-a"><span>إجمالي المخالفات</span><b>${money(tot)}</b><small>ريال</small></div>
+   </div>
+   <div class="vgrid">
+    ${sec('📋', 'بيانات الطلب', `<div class="fl">${f('مقدم الطلب', `<b>${esc(r.createdByName)}</b><br><span class="muted small">${esc(dt(r.createdAt))}</span>`)}${f('المراجع', r.reviewerName ? `${esc(r.reviewerName)}${r.reviewedAt ? `<br><span class="muted small">${esc(dt(r.reviewedAt))}</span>` : ''}` : '')}${r.reviewNote ? f('ملاحظة المراجع / سبب الرفض', `<span class="bad">${esc(r.reviewNote)}</span>`, 1) : ''}</div>`)}
+    ${sec('👤', 'السائق', `<div class="fl">${f('السائق', `<b>${esc(r.driverName)}</b>`, 1)}${f('رقم الهوية', esc(r.iqama))}${r.type === 'transfer' || d.newIqama ? f('السائق الجديد', `<b>${esc(d.newName || '')}</b> (${esc(d.newIqama || '')})`, 1) : ''}${d.otherName || d.otherId ? f('المتسبب حسب السائق', esc(d.otherName || '') + ' ' + esc(d.otherId || ''), 1) : ''}</div>`)}
+   </div>
+   ${sec('💬', r.type === 'objection' ? 'سبب الاعتراض' : 'السبب / الملاحظة', `<div class="vreason">${esc(d.reason || '—')}</div>`)}
+   ${sec('📎', 'المرفقات', (d.files || []).length ? filesHtml(d.files) : '<div class="vs-none">لا توجد مرفقات</div>', (d.files || []).length)}
+   ${sec('🚦', 'المخالفات', vTable(vs.filter(v => v.iqama !== undefined)), vs.length)}
+   ${sec('🕘', 'سجل الطلب', `<div class="tl">${(r.history || []).map(h => `<div><i></i><span class="n">${esc(dt(h.at))}</span> — ${pill(h.status)} — ${esc(h.n)}${h.note ? ` <span class="muted">— ${esc(h.note)}</span>` : ''}</div>`).join('')}</div>`)}
+   <section class="vs vdec" id="raw"><h3><span>⚖️</span>قرار المراجعة</h3><div class="row" id="ra"></div></section>`;
   bindTable(m);
   const ra = m.querySelector('#ra'); const btns = [];
   if (mine && ['مسودة', 'مرفوض', 'يحتاج إلى تعديل'].indexOf(r.status) > -1 && r.type !== 'objection' && can(REQ_PERM[r.type][0]))
@@ -610,21 +620,21 @@ function showRequest(id) {
        <div class="row"><button class="btn ok" data-x="approve">✓ اعتماد وتنفيذ</button><button class="btn warn" data-x="needs">يحتاج إلى تعديل</button><button class="btn bad" data-x="reject">✗ رفض</button></div></div>`);
     }
   }
-  ra.innerHTML = btns.join('');
+  ra.innerHTML = btns.join(''); if (!btns.length) m.querySelector('#raw').remove(); else if (!reviewable) m.querySelector('#raw h3').innerHTML = '<span>ℹ️</span>حالة الطلب';
   ra.querySelectorAll('[data-x]').forEach(b => b.onclick = () => {
     const x = b.dataset.x, note = (m.querySelector('#rn') || {}).value || '';
     if (x === 'edit') { m.remove(); return reqDialog(r.type, String(r.vnos).split(','), null, r); }
-    if (x === 'claim') return busy(b, async () => { await api('reqClaim', { id: r.id }); await loadReqs(); m.remove(); showRequest(r.id); render(); });
+    if (x === 'claim') return busy(b, async () => { await api('reqClaim', { id: r.id }); await loadReqs(); render(); });
     if (x === 'o-transfer') {
       const iq = prompt('رقم هوية السائق المتسبب (الجديد):', d.otherId || ''); if (!iq) return;
       const nm = prompt('اسم السائق الجديد:', d.otherName || (S.phones[iq] || {}).name || ''); if (!nm) return;
-      return busy(b, async () => { await api('reqReview', { id: r.id, decision: 'approve', outcome: 'transfer', newIqama: iq.trim(), newName: nm.trim(), note }); toast('تم التحويل — أرسلها للسائق الجديد'); m.remove(); await reloadAll(); if (can('whatsapp')) showDriver(iq.trim()); });
+      return busy(b, async () => { await api('reqReview', { id: r.id, decision: 'approve', outcome: 'transfer', newIqama: iq.trim(), newName: nm.trim(), note }); toast('تم التحويل — أرسلها للسائق الجديد'); PV.pop(); await reloadAll(); if (can('whatsapp')) showDriver(iq.trim()); });
     }
     const body = x.startsWith('o-') ? { decision: 'approve', outcome: x.slice(2) } : { decision: x };
     if ((x === 'reject' || x === 'needs') && !note.trim()) return toast('اكتب السبب في خانة الملاحظة', 1);
     if (x === 'approve' && !confirm('اعتماد الطلب وتنفيذ الإجراء؟')) return;
     busy(b, async () => { await api('reqReview', Object.assign({ id: r.id, note }, body));
-      toast(r.type === 'transfer' && x === 'approve' ? 'تم التحويل — أرسل المخالفة للسائق الجديد من ملفه في «السائقون»' : 'تم حفظ القرار'); m.remove(); await reloadAll();
+      toast(r.type === 'transfer' && x === 'approve' ? 'تم التحويل — أرسل المخالفة للسائق الجديد من ملفه في «السائقون»' : 'تم حفظ القرار'); PV.pop(); await reloadAll();
       if (r.type === 'transfer' && x === 'approve' && d.newIqama && canAny('whatsapp')) showDriver(d.newIqama); });
   });
 }
