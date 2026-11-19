@@ -277,7 +277,6 @@ const TABS = [
   { id: 'drivers', ar: 'السائقون', ok: () => canAny('drivers', 'print', 'whatsapp') },
   { id: 'reqs', ar: 'الطلبات والمراجعة', ok: () => true, badge: () => S.R.filter(r => OPEN.indexOf(r.status) > -1 && canReview(r) && r.createdBy !== S.me.u).length },
   { id: 'import', ar: 'الاستيراد', ok: () => S.me.admin },
-  { id: 'vehicles', ar: 'المركبات', ok: () => canAny('vehicles', 'view') },
   { id: 'reports', ar: 'التقارير', ok: () => can('reports') },
   { id: 'archive', ar: 'الأرشيف', ok: () => can('archive') },
   { id: 'audit', ar: 'سجل العمليات', ok: () => can('audit') }
@@ -293,7 +292,7 @@ function render() {
   renderTabs();
   if (PV.length) { PV[PV.length - 1].reopen(); return; }
   const m = $('main');
-  const f = { dash: vDash, list: vList, drivers: vDrivers, reqs: vReqs, import: vImport, vehicles: vVehicles, reports: vReports, archive: vArchive, audit: vAudit }[S.tab];
+  const f = { dash: vDash, list: vList, drivers: vDrivers, reqs: vReqs, import: vImport, reports: vReports, archive: vArchive, audit: vAudit }[S.tab];
   if (!f) { m.innerHTML = '<div class="card empty">لا توجد صفحات متاحة لحسابك.</div>'; return; }
   try { f(m); } catch (e) { console.error(e); m.innerHTML = `<div class="card bad">${esc(e.message)}</div>`; }
 }
