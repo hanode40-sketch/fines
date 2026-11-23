@@ -83,8 +83,9 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 .pq .bd{position:absolute;right:60px;left:60px;top:190px;font-size:16px;line-height:1.9}
 .pq .ln{display:inline-block;min-width:200px;border-bottom:1.5px dashed #444;padding:0 8px;text-align:center;font-weight:800}
 .pq .vl{margin:18px 0 6px;font-size:20px}
-.pq ol{margin:0;padding-right:28px;font-size:15px;line-height:1.75}
-.pq ol li span{color:#444;font-weight:600;font-size:13px}
+.pq .vls{font-size:15px;line-height:1.75;padding-right:6px}
+.pq .vls b{display:inline-block;min-width:26px}
+.pq .vls span{color:#444;font-weight:600;font-size:13px}
 .pq .tx{font-size:19px;margin-top:10px}
 .pq .two{display:flex;justify-content:space-between;border-top:1.5px dashed #444;margin-top:18px;padding-top:14px}
 .pq .two>div{width:48%;line-height:2.1}
@@ -785,7 +786,7 @@ function ackPage(d, vs, c, ref) {
     <div>انا / ${L(c.name, 260)} رقم هوية ${L(c.iqama, 170)}</div>
     <div>اقر أني ارتكبت المخالفات التالية التي أصدرت على هوية رقم ${L(d.iqama, 170)}</div>
     <div class="vl">ارقام المخالفات</div>
-    <ol>${vs.map(v => `<li>${esc(v.vno)} <span>— ${esc(v.descAr || '')} · ${esc(d10(v.dateG))}${v.city ? ' · ' + esc(v.city) : ''}</span></li>`).join('')}</ol>
+    <div class="vls">${vs.map((v, i) => `<div><b>${i + 1}-</b> ${esc(v.vno)} <span>— ${esc(v.descAr || '')} · ${esc(d10(v.dateG))}${v.city ? ' · ' + esc(v.city) : ''}</span></div>`).join('')}</div>
     <div class="tx">وبناء على ذلك يتم السداد المخالفات والخصم من راتبي الشهري.</div>
     <div class="two">
      <div>اسم المتسبب / ${esc(c.name)}<br>الهوية / ${esc(c.iqama)}<br>التاريخ / ${today}<div class="fp">بصمة</div></div>
