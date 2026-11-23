@@ -817,11 +817,19 @@ function ackDialog(d, sel) {
    <div class="note">نموذج إقرار لـ <b>${vs.length}</b> مخالفة صادرة على هوية <b>${esc(d.iqama)}</b>. يُطبع ويوقّع ويبصم عليه المتسبب (والطرف الآخر إن وجد).</div>
    <h3>المتسبب</h3>
    <div class="row"><label class="chk"><input type="radio" name="ac" value="me" checked> السائق نفسه (${esc(d.name)})</label><label class="chk"><input type="radio" name="ac" value="other"> سائق آخر</label></div>
-   <div class="row" id="ao" style="display:none;margin-top:8px"><input id="ai" dir="ltr" placeholder="رقم هوية المتسبب" style="max-width:220px"><input id="an" class="grow" placeholder="اسم المتسبب"></div>
+   <div id="ao" style="display:none;margin-top:8px"><input id="as" type="search" list="asl" autocomplete="off" placeholder="🔍 ابحث عن السائق بالاسم أو رقم الهوية" style="width:100%;margin-bottom:8px"><datalist id="asl"></datalist>
+    <div class="row"><input id="ai" dir="ltr" placeholder="رقم هوية المتسبب" style="max-width:220px"><input id="an" class="grow" placeholder="اسم المتسبب"></div></div>
    <div class="row" style="margin-top:12px"><button class="btn" id="ag">🧾 تنزيل الإقرار PDF</button></div>`);
   const isO = () => m.querySelector('[name=ac]:checked').value === 'other';
   m.querySelectorAll('[name=ac]').forEach(x => x.onchange = () => { m.querySelector('#ao').style.display = isO() ? '' : 'none'; });
   m.querySelector('#ai').oninput = e => { const p = S.phones[e.target.value.trim()]; if (p && p.name && !m.querySelector('#an').value) m.querySelector('#an').value = p.name; };
+  // بحث السائقين: من «إدارة السائقين» + سائقي المخالفات
+  const ALL = {}; Object.keys(S.phones || {}).forEach(q => { if ((S.phones[q] || {}).name) ALL[q] = S.phones[q].name; }); drivers().forEach(x => { if (!ALL[x.iqama]) ALL[x.iqama] = x.name; });
+  delete ALL[d.iqama];
+  const sl = m.querySelector('#as');
+  sl.oninput = () => { const q = sl.value.trim().toLowerCase(); const hit = /—\s*(\d{10})$/.exec(sl.value);
+    if (hit && ALL[hit[1]]) { m.querySelector('#ai').value = hit[1]; m.querySelector('#an').value = ALL[hit[1]]; return; }
+    m.querySelector('#asl').innerHTML = q.length < 2 ? '' : Object.keys(ALL).filter(k => (ALL[k] + ' ' + k).toLowerCase().indexOf(q) > -1).slice(0, 30).map(k => `<option value="${esc(ALL[k])} — ${k}">`).join(''); };
   m.querySelector('#ag').onclick = e => busy(e.target, async () => {
     let c = { name: d.name, iqama: d.iqama };
     if (isO()) { c = { iqama: m.querySelector('#ai').value.trim(), name: m.querySelector('#an').value.trim() };
