@@ -94,6 +94,8 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 .pf .signs{position:absolute;right:56px;left:56px;display:flex;justify-content:space-between;font-weight:700;font-size:14px}
 .pf .signs div{position:relative;text-align:center;width:150px}
 .pf .signs img{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none}
+.pf .cinfo{position:absolute;right:56px;left:56px;border:1px solid #222;background:rgba(255,255,255,.7);padding:8px 12px;font-size:13px;line-height:1.75}
+.pf .cinfo b{font-weight:800}
 .pf .signs .sgn{display:block;margin-top:6px;font-size:12px;font-weight:600;color:#1e3a8a}
 .pf .foot{position:absolute;left:18px;right:18px;bottom:8px;display:flex;justify-content:space-between;font-size:10.5px;color:#555}
 @media print{.top,.tabs,.no-print,.btn{display:none!important}.card{box-shadow:none;border:0}.scroll{max-height:none;overflow:visible;border:0}body{background:#fff}}
@@ -620,10 +622,17 @@ function showRequest(id) {
        <div class="row"><button class="btn ok" data-x="approve">✓ اعتماد وتنفيذ</button><button class="btn warn" data-x="needs">يحتاج إلى تعديل</button><button class="btn bad" data-x="reject">✗ رفض</button></div></div>`);
     }
   }
+  const cancelled = vs.filter(v => v.status === 'ملغاة');
+  if (['مكتمل', 'معتمد'].indexOf(r.status) > -1 && (r.type === 'cancel' || r.type === 'objection') && cancelled.length && canAny('print', 'finance'))
+    btns.push('<button class="btn" data-x="cprint">🖨️ طباعة إشعار الإلغاء (للمالية)</button>');
   ra.innerHTML = btns.join(''); if (!btns.length) m.querySelector('#raw').remove(); else if (!reviewable) m.querySelector('#raw h3').innerHTML = '<span>ℹ️</span>حالة الطلب';
   ra.querySelectorAll('[data-x]').forEach(b => b.onclick = () => {
     const x = b.dataset.x, note = (m.querySelector('#rn') || {}).value || '';
     if (x === 'edit') { m.remove(); return reqDialog(r.type, String(r.vnos).split(','), null, r); }
+    if (x === 'cprint') return busy(b, async () => {
+      const rev = (r.history || []).filter(h => h.status === 'معتمد' || h.status === 'مكتمل').pop() || {};
+      const pdf = await proofPdf({ name: r.driverName, iqama: r.iqama, cancel: { reason: d.reason, by: r.createdByName, at: r.createdAt, rev: r.reviewerName || rev.n, revAt: r.reviewedAt || rev.at } }, cancelled, r.id, 'cancel');
+      pdf.save('إشعار_إلغاء_' + r.iqama + '_' + r.id + '.pdf'); toast('تم إعداد إشعار الإلغاء'); });
     if (x === 'claim') return busy(b, async () => { await api('reqClaim', { id: r.id }); await loadReqs(); render(); });
     if (x === 'o-transfer') {
       const iq = prompt('رقم هوية السائق المتسبب (الجديد):', d.otherId || ''); if (!iq) return;
@@ -700,26 +709,29 @@ async function showDriver(iqama) {
 /* ---------- نموذج «إثبات مخالفة مرورية» (PDF) ---------- */
 function proofPages(d, vs, ref, mode) {
   const withBox = mode === 'stamp';            // خانة «المتسبب سائق آخر» والبصمة في نموذج التبصيم فقط
+  const CAN = mode === 'cancel';                // إشعار إلغاء للمالية: المبلغ = المبلغ قبل الإلغاء
+  const amt = v => CAN ? Number(v.origAmount || v.amount || 0) : Number(v.amount || 0);
   const PER = 9, BOX = withBox ? 5 : 9;
   const chunks = []; for (let i = 0; i < vs.length; i += PER) chunks.push(vs.slice(i, i + PER));
   if (!chunks.length) chunks.push([]);
   const needExtra = chunks[chunks.length - 1].length > BOX;
-  const total = vs.reduce((s, v) => s + Number(v.amount || 0), 0);
+  const total = vs.reduce((s, v) => s + amt(v), 0);
   const year = new Date().getFullYear(); const today = new Date().toLocaleDateString('en-GB');
   const pages = []; const nPages = chunks.length + (needExtra ? 1 : 0);
   const head = `<tr><th style="width:26px">م</th><th>رقم المخالفة<em>Violation number</em></th><th>رقم هوية المخالف<em>Violator's ID number</em></th><th style="width:150px">الاسم<em>Name</em></th>
    <th style="width:230px">تفاصيل المخالفة<em>Details of the violation</em></th><th>مدينة المخالفة<em>City where the violation occurred</em></th><th>تاريخ المخالفة<em>Date of violation</em></th>
-   <th>الوقت<em>Time of violation</em></th><th>رقم التشغيل<em>Operating number</em></th><th>المبلغ<em>Fine amount</em></th></tr>`;
+   <th>الوقت<em>Time of violation</em></th><th>رقم التشغيل<em>Operating number</em></th><th>${CAN ? 'المبلغ قبل الإلغاء' : 'المبلغ'}<em>${CAN ? 'Amount before cancellation' : 'Fine amount'}</em></th></tr>`;
   let idx = 0;
-  const bottom = top => (withBox ? `<div class="other" style="top:${top}px"><div class="h">في حال كان المتسبب سائق اخر</div><p>اسم السائق:</p><p style="margin-top:30px">الهوية :</p></div>
+  const ci = d.cancel || {};
+  const bottom = top => (CAN ? `<div class="cinfo" style="top:${top}px"><b>تم إلغاء المخالفات أعلاه</b> بموجب الطلب رقم <b dir="ltr">${esc(ref)}</b> — إجمالي المبلغ الملغى: <b>${money(total)} ريال</b><br>السبب: ${esc(ci.reason || '—')}<br>مقدم الطلب: ${esc(ci.by || '—')} (${esc(dt(ci.at) || '')}) · اعتمده: ${esc(ci.rev || '—')} (${esc(dt(ci.revAt) || '')})</div>` : '') + (withBox ? `<div class="other" style="top:${top}px"><div class="h">في حال كان المتسبب سائق اخر</div><p>اسم السائق:</p><p style="margin-top:30px">الهوية :</p></div>
     <div class="finger" style="top:${top + 92}px">البصمة</div>` : '') +
-    `<div class="signs" style="top:${withBox ? top + 200 : Math.min(top + 60, 690)}px"><div>مدير قسم المخالفات<img src="${ASSETS.sig1}" style="width:95px;top:-40px"></div>
+    `<div class="signs" style="top:${withBox ? top + 200 : CAN ? Math.min(top + 120, 520) : Math.min(top + 60, 690)}px"><div>مدير قسم المخالفات<img src="${ASSETS.sig1}" style="width:95px;top:-40px"></div>
      <div>مشرف التشغيل<span class="sgn">${esc((S.me && (S.me.n || S.me.u)) || '')}</span></div><div>مدير التشغيل<img src="${ASSETS.sig2}" style="width:150px;top:-26px"></div><div>الموارد البشرية</div><div>المدير المالي</div></div>`;
   const pageHtml = (rows, showTotal, showBox, withTable, pi) => {
     const tableH = withTable ? 122 + 52 + rows.length * 46 + (showTotal ? 32 : 0) : 120;
-    return `<div class="pf"><img class="wm" src="${ASSETS.wm}"><img class="logo" src="${ASSETS.logo}"><div class="yr">${year}</div><div class="tt"><span>اثبات مخالفة مرورية</span></div>
+    return `<div class="pf"><img class="wm" src="${ASSETS.wm}"><img class="logo" src="${ASSETS.logo}"><div class="yr">${year}</div><div class="tt"><span>${CAN ? 'إشعار إلغاء مخالفة مرورية — للمالية' : 'اثبات مخالفة مرورية'}</span></div>
      ${withTable ? `<table>${head}${rows.map(v => `<tr><td>${++idx}</td><td>${esc(v.vno)}</td><td>${esc(v.iqama)}</td><td>${esc(v.name)}</td><td class="d">${esc(v.descAr)}</td>
-       <td>${esc(v.city)}</td><td>${esc(d10(v.dateG))}</td><td>${esc(t5(v.time))}</td><td>${esc(v.opNo)}</td><td>${money(v.amount)}</td></tr>`).join('')}
+       <td>${esc(v.city)}</td><td>${esc(d10(v.dateG))}</td><td>${esc(t5(v.time))}</td><td>${esc(v.opNo)}</td><td>${money(amt(v))}</td></tr>`).join('')}
        ${showTotal ? `<tr class="tot"><td colspan="9">الإجمالي — ${vs.length} مخالفة</td><td>${money(total)}</td></tr>` : ''}</table>` : ''}
      ${showBox ? bottom(withBox ? Math.max(tableH + 22, 300) : Math.max(tableH + 30, 260)) : ''}
      <div class="foot"><span>رقم الكشف: ${esc(ref)} — ${esc(d.name)} (${esc(d.iqama)})</span><span>تاريخ الإصدار: ${today}</span><span>صفحة ${pi} من ${nPages}</span></div></div>`;
