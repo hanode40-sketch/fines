@@ -76,6 +76,23 @@ html[data-theme=dark] .p-warn{background:#3a2a10;color:#fcd34d}html[data-theme=d
 html[data-theme=dark] .sel{background:#2b2210!important}
 .note{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px}
 #pdfStage{position:fixed;left:-20000px;top:0}
+.pq{width:794px;height:1123px;background:#fff;color:#111;position:relative;font-family:Arial,Tahoma,sans-serif;direction:rtl;overflow:hidden;font-weight:700}
+.pq .wm{position:absolute;left:150px;top:470px;width:500px;opacity:.07}
+.pq .logo{position:absolute;left:40px;top:60px;width:210px}
+.pq .tt{position:absolute;right:60px;top:100px;color:#dc2626;font-size:20px}
+.pq .bd{position:absolute;right:60px;left:60px;top:190px;font-size:16px;line-height:1.9}
+.pq .ln{display:inline-block;min-width:200px;border-bottom:1.5px dashed #444;padding:0 8px;text-align:center;font-weight:800}
+.pq .vl{margin:18px 0 6px;font-size:20px}
+.pq ol{margin:0;padding-right:28px;font-size:15px;line-height:1.75}
+.pq ol li span{color:#444;font-weight:600;font-size:13px}
+.pq .tx{font-size:19px;margin-top:10px}
+.pq .two{display:flex;justify-content:space-between;border-top:1.5px dashed #444;margin-top:18px;padding-top:14px}
+.pq .two>div{width:48%;line-height:2.1}
+.pq .fp{margin-top:20px}
+.pq .sup{margin-top:46px;line-height:2.4}
+.pq .ft{position:absolute;left:40px;bottom:46px;font-size:15px;font-weight:600;color:#333;line-height:1.4}
+.pq .ft i{display:inline-block;width:12px;height:12px;border-radius:50%;background:#f97316;margin-left:6px;vertical-align:middle}
+.pq .ref{position:absolute;right:40px;bottom:18px;font-size:10px;color:#666;font-weight:400}
 .pf{width:1123px;height:794px;background:#fff;color:#111;position:relative;font-family:Tahoma,Arial,sans-serif;direction:rtl;overflow:hidden}
 .pf .wm{position:absolute;left:50%;top:52%;width:780px;transform:translate(-50%,-50%);opacity:.9}
 .pf .logo{position:absolute;left:34px;top:24px;width:150px}
@@ -678,6 +695,7 @@ async function showDriver(iqama) {
    <div class="row" style="margin:8px 0">
     ${can('whatsapp') ? '<button class="btn ok" data-k="wa" disabled>📲 إرسال واتساب (تبليغ إلكتروني)</button>' : ''}
     ${can('print') ? '<button class="btn sec" data-k="print" disabled>⬇️ تنزيل كشف PDF</button>' : ''}
+    ${can('print') ? '<button class="btn sec" data-k="ack" disabled>🧾 إقرار ارتكاب مخالفة</button>' : ''}
     ${can('cancelReq') ? '<button class="btn bad sm" data-k="cancel" disabled>طلب إلغاء</button>' : ''}
     ${can('transferReq') ? '<button class="btn warn sm" data-k="transfer" disabled>طلب تحويل</button>' : ''}
    </div>
@@ -695,6 +713,7 @@ async function showDriver(iqama) {
     if (k === 'print' || k === 'stampForm') return busy(b, () => makeProof(d, sel, k === 'stampForm' ? 'stamp' : 'print'));
     if (k === 'stampUp') return reqDialog('stamp', sel, () => m.remove());
     if (k === 'wa') return waDialog(d, sel, m);
+    if (k === 'ack') return ackDialog(d, sel);
     reqDialog(k, sel, () => m.remove());
   });
   try {
@@ -754,6 +773,64 @@ async function proofPdf(d, vs, ref, mode) {
   }
   st.innerHTML = '';
   return pdf;
+}
+/* ---------- نموذج «إقرار ارتكاب مخالفة» (A4 طولي) ----------
+   المتسبب: السائق نفسه، أو سائق آخر ارتكبها والمخالفة صادرة على هوية السائق (الطرف الآخر) */
+function ackPage(d, vs, c, ref) {
+  const other = c.iqama !== d.iqama;
+  const L = (v, w) => `<span class="ln" style="min-width:${w || 200}px">${esc(v || '')}</span>`;
+  const today = new Date().toLocaleDateString('en-GB');
+  return `<div class="pq"><img class="wm" src="${ASSETS.wm}"><img class="logo" src="${ASSETS.logo}"><div class="tt">إقرار ارتكاب مخالفة</div>
+   <div class="bd">
+    <div>انا / ${L(c.name, 260)} رقم هوية ${L(c.iqama, 170)}</div>
+    <div>اقر أني ارتكبت المخالفات التالية التي أصدرت على هوية رقم ${L(d.iqama, 170)}</div>
+    <div class="vl">ارقام المخالفات</div>
+    <ol>${vs.map(v => `<li>${esc(v.vno)} <span>— ${esc(v.descAr || '')} · ${esc(d10(v.dateG))}${v.city ? ' · ' + esc(v.city) : ''}</span></li>`).join('')}</ol>
+    <div class="tx">وبناء على ذلك يتم السداد المخالفات والخصم من راتبي الشهري.</div>
+    <div class="two">
+     <div>اسم المتسبب / ${esc(c.name)}<br>الهوية / ${esc(c.iqama)}<br>التاريخ / ${today}<div class="fp">بصمة</div></div>
+     <div>اسم الطرف الاخر / ${other ? esc(d.name) : ''}<br>الهوية / ${other ? esc(d.iqama) : ''}<br>التاريخ / ${other ? today : ''}<div class="fp">بصمة</div></div>
+    </div>
+    <div class="sup">اسم المشرف / ${esc((S.me && (S.me.n || S.me.u)) || '')}<br>التوقيع /</div>
+   </div>
+   <div class="ft"><i></i>جدة - عفيفة الأصبهاني<br><i style="background:#1e3a8a"></i>JEDDAH - AFIFA AL ASBAHANI</div>
+   <div class="ref">${esc(ref || '')}</div></div>`;
+}
+async function ackPdf(d, vs, c, ref) {
+  if (!window.html2canvas || !window.jspdf) throw new Error('مكتبات PDF لم تُحمّل — تأكد من الاتصال بالإنترنت');
+  const st = $('pdfStage'); const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  const per = 14;                                   // 14 مخالفة في الصفحة
+  for (let i = 0; i < Math.max(1, vs.length); i += per) {
+    st.innerHTML = ackPage(d, vs.slice(i, i + per), c, ref + (vs.length > per ? ` — صفحة ${i / per + 1}` : ''));
+    await Promise.all([...st.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+    const cv = await html2canvas(st.firstElementChild, { scale: 2, backgroundColor: '#ffffff' });
+    if (i) pdf.addPage();
+    pdf.addImage(cv.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 595.28, 841.89);
+  }
+  st.innerHTML = '';
+  return pdf;
+}
+function ackDialog(d, sel) {
+  const vs = sel.map(vOf).filter(Boolean);
+  const m = modal('إقرار ارتكاب مخالفة — ' + esc(d.name), `
+   <div class="note">نموذج إقرار لـ <b>${vs.length}</b> مخالفة صادرة على هوية <b>${esc(d.iqama)}</b>. يُطبع ويوقّع ويبصم عليه المتسبب (والطرف الآخر إن وجد).</div>
+   <h3>المتسبب</h3>
+   <div class="row"><label class="chk"><input type="radio" name="ac" value="me" checked> السائق نفسه (${esc(d.name)})</label><label class="chk"><input type="radio" name="ac" value="other"> سائق آخر</label></div>
+   <div class="row" id="ao" style="display:none;margin-top:8px"><input id="ai" dir="ltr" placeholder="رقم هوية المتسبب" style="max-width:220px"><input id="an" class="grow" placeholder="اسم المتسبب"></div>
+   <div class="row" style="margin-top:12px"><button class="btn" id="ag">🧾 تنزيل الإقرار PDF</button></div>`);
+  const isO = () => m.querySelector('[name=ac]:checked').value === 'other';
+  m.querySelectorAll('[name=ac]').forEach(x => x.onchange = () => { m.querySelector('#ao').style.display = isO() ? '' : 'none'; });
+  m.querySelector('#ai').oninput = e => { const p = S.phones[e.target.value.trim()]; if (p && p.name && !m.querySelector('#an').value) m.querySelector('#an').value = p.name; };
+  m.querySelector('#ag').onclick = e => busy(e.target, async () => {
+    let c = { name: d.name, iqama: d.iqama };
+    if (isO()) { c = { iqama: m.querySelector('#ai').value.trim(), name: m.querySelector('#an').value.trim() };
+      if (!/^\d{10}$/.test(c.iqama) || !c.name) return toast('اكتب رقم هوية المتسبب (10 أرقام) واسمه', 1);
+      if (c.iqama === d.iqama) return toast('المتسبب هو نفس السائق — اختر «السائق نفسه»', 1); }
+    const j = await api('printLog', { kind: 'print', vnos: sel });
+    const pdf = await ackPdf(d, vs, c, 'إقرار ' + j.id);
+    pdf.save('إقرار_ارتكاب_مخالفة_' + c.iqama + '_' + j.id + '.pdf'); toast('تم إعداد الإقرار'); m.remove();
+  });
 }
 async function makeProof(d, sel, kind) {
   const vs = sel.map(vOf).filter(Boolean);
