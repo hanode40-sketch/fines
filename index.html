@@ -94,6 +94,7 @@ html[data-theme=dark] .sel{background:#2b2210!important}
 .pf .signs{position:absolute;right:56px;left:56px;display:flex;justify-content:space-between;font-weight:700;font-size:14px}
 .pf .signs div{position:relative;text-align:center;width:150px}
 .pf .signs img{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none}
+.pf .signs .sgn{display:block;margin-top:6px;font-size:12px;font-weight:600;color:#1e3a8a}
 .pf .foot{position:absolute;left:18px;right:18px;bottom:8px;display:flex;justify-content:space-between;font-size:10.5px;color:#555}
 @media print{.top,.tabs,.no-print,.btn{display:none!important}.card{box-shadow:none;border:0}.scroll{max-height:none;overflow:visible;border:0}body{background:#fff}}
 @media (max-width:700px){.tbl{font-size:12px}.kv{grid-template-columns:1fr 1fr}}
@@ -713,7 +714,7 @@ function proofPages(d, vs, ref, mode) {
   const bottom = top => (withBox ? `<div class="other" style="top:${top}px"><div class="h">في حال كان المتسبب سائق اخر</div><p>اسم السائق:</p><p style="margin-top:30px">الهوية :</p></div>
     <div class="finger" style="top:${top + 92}px">البصمة</div>` : '') +
     `<div class="signs" style="top:${withBox ? top + 200 : Math.min(top + 60, 690)}px"><div>مدير قسم المخالفات<img src="${ASSETS.sig1}" style="width:95px;top:-40px"></div>
-     <div>مشرف التشغيل</div><div>مدير التشغيل<img src="${ASSETS.sig2}" style="width:150px;top:-26px"></div><div>الموارد البشرية</div><div>المدير المالي</div></div>`;
+     <div>مشرف التشغيل<span class="sgn">${esc((S.me && (S.me.n || S.me.u)) || '')}</span></div><div>مدير التشغيل<img src="${ASSETS.sig2}" style="width:150px;top:-26px"></div><div>الموارد البشرية</div><div>المدير المالي</div></div>`;
   const pageHtml = (rows, showTotal, showBox, withTable, pi) => {
     const tableH = withTable ? 122 + 52 + rows.length * 46 + (showTotal ? 32 : 0) : 120;
     return `<div class="pf"><img class="wm" src="${ASSETS.wm}"><img class="logo" src="${ASSETS.logo}"><div class="yr">${year}</div><div class="tt"><span>اثبات مخالفة مرورية</span></div>
