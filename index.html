@@ -292,15 +292,17 @@ const PERM_LABEL = {
   docsApprove: 'مراجعة واعتماد المرفقات والتحديثات', docs: 'رفع المستندات والملاحظات (تتطلب اعتماد)'
 };
 
+/* الموظف (بدون صلاحيات مراجعة) يشوف «السائقون» و«الطلبات» بس — أبسط */
+const isClerk = () => !S.me.admin && !canAny('stampApprove', 'cancelApprove', 'transferApprove', 'docsApprove');
 const TABS = [
-  { id: 'dash', ar: 'لوحة التحكم', ok: () => can('dashboard') },
-  { id: 'list', ar: 'المخالفات', ok: () => can('view') },
+  { id: 'dash', ar: 'لوحة التحكم', ok: () => can('dashboard') && !isClerk() },
+  { id: 'list', ar: 'المخالفات', ok: () => can('view') && !isClerk() },
   { id: 'drivers', ar: 'السائقون', ok: () => canAny('drivers', 'print', 'whatsapp') },
   { id: 'reqs', ar: 'الطلبات والمراجعة', ok: () => true, badge: () => S.R.filter(r => OPEN.indexOf(r.status) > -1 && canReview(r) && r.createdBy !== S.me.u).length },
   { id: 'import', ar: 'الاستيراد', ok: () => S.me.admin },
-  { id: 'reports', ar: 'التقارير', ok: () => can('reports') },
-  { id: 'archive', ar: 'الأرشيف', ok: () => can('archive') },
-  { id: 'audit', ar: 'سجل العمليات', ok: () => can('audit') }
+  { id: 'reports', ar: 'التقارير', ok: () => can('reports') && !isClerk() },
+  { id: 'archive', ar: 'الأرشيف', ok: () => can('archive') && !isClerk() },
+  { id: 'audit', ar: 'سجل العمليات', ok: () => can('audit') && !isClerk() }
 ];
 function renderTabs() {
   const vis = TABS.filter(t => t.ok());
@@ -433,7 +435,7 @@ function vDash(m) {
       <div class="stack">${ST.map(x => `<i title="${esc(x.l)}: ${x.v}" style="flex:${x.v};background:${x.c}"></i>`).join('')}</div>
       <div class="lgd">${ST.map(x => `<div class="lg-r"><div class="lg-h"><span class="dot" style="background:${x.c}"></span><span class="lg-l">${esc(x.l)}</span><b>${fmt(x.v)}</b><span class="muted small lg-p">${pct(x.v)}%</span></div><div class="hb-b"><i style="width:${pct(x.v)}%;background:${x.c}"></i></div></div>`).join('')}</div></div>
     <div class="card"><div class="ch"><h2>يحتاج إجراء</h2></div><div class="das">
-      ${act1('📨', 'مخالفات لم تُبلّغ', cnt('لم يُبلّغ'), 'أرسلها للسائقين من ملف السائق', 'drivers', 'bad')}
+      ${act1('📨', 'مخالفات لم تُبلّغ', cnt('لم يُبلّغ'), 'اضغط هنا — قائمة السائقين وزر إرسال لكل سائق', 'drivers:dn', 'bad')}
       ${act1('⏳', 'مهلة تنتهي خلال 24 ساعة', soon, 'تابع مع السائق قبل ثبوتها', 'list', 'warn')}
       ${act1('📋', 'طلبات قيد المراجعة', pend, 'إلغاء / تحويل / مستندات', 'reqs', 'brand')}
       ${act1('⚖️', 'اعتراضات مفتوحة', objs, 'بانتظار قرار المشرف', 'reqs', 'brand')}
@@ -453,7 +455,7 @@ function vDash(m) {
   const setMon = k => { S.dashMonth = k; try { sessionStorage.setItem('finesDashMonth', k); } catch (e) {} vDash(m); };
   $('dMon').onchange = e => setMon(e.target.value);
   m.querySelectorAll('[data-mon]').forEach(c => c.onclick = () => setMon(c.dataset.mon === sel ? '' : c.dataset.mon));
-  m.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { if (!TABS.find(t => t.id === b.dataset.go && t.ok())) return toast('ليس لديك صلاحية لهذه الصفحة', 1); S.tab = b.dataset.go; location.hash = S.tab; render(); });
+  m.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { const [go, pre] = b.dataset.go.split(':'); if (!TABS.find(t => t.id === go && t.ok())) return toast('ليس لديك صلاحية لهذه الصفحة', 1); if (pre === 'dn') S.dnPreset = true; S.tab = go; location.hash = S.tab; render(); });
 }
 
 /* ============ المخالفات ============ */
@@ -559,7 +561,7 @@ function reqDialog(type, vnos, after, existing) {
    ${existing && (d.files || []).length ? `<div class="chips">${d.files.map(f => `<label class="chk"><input type="checkbox" data-k="${esc(f.id)}" checked> ${esc(f.name)}</label>`).join('')}</div>` : ''}
    <input type="file" id="rf" multiple accept="image/*,application/pdf" ${type === 'stamp' ? 'capture="environment"' : ''}>
    <p class="small muted">الطلب لا يُنفّذ بمجرد رفعه — ينتقل للمشرف للمراجعة والاعتماد.</p>
-   <div class="row">${existing ? '' : '<button class="btn sec" id="rd">حفظ كمسودة</button>'}<button class="btn" id="rs">${existing ? 'إعادة التقديم' : 'تقديم للمراجعة'}</button></div>`);
+   <div class="row">${existing ? '' : '<button class="btn sec" id="rd">حفظ كمسودة</button>'}<button class="btn" id="rs">${existing ? 'إعادة التقديم' : 'تقديم للمراجعة'}</button>${!existing && S.me.admin && (type === 'cancel' || type === 'transfer') ? '<button class="btn ok" id="rx">⚡ تنفيذ مباشر (المدير)</button>' : ''}</div>`);
   if (type === 'transfer') {
     const ni = m.querySelector('#ni'), nn = m.querySelector('#nn');
     const nf = m.querySelector('#nf');
@@ -571,11 +573,13 @@ function reqDialog(type, vnos, after, existing) {
     const data = { reason: m.querySelector('#rr').value.trim(), newFiles: await readFiles(m.querySelector('#rf')) };
     if (type === 'transfer') { data.newIqama = m.querySelector('#ni').value.trim(); data.newName = m.querySelector('#nn').value.trim(); }
     if (existing) { data.keepFiles = [...m.querySelectorAll('[data-k]:checked')].map(c => c.dataset.k); await api('reqUpdate', { id: existing.id, data }); }
-    else await api('reqCreate', { type, vnos, data, draft });
+    else { const j = await api('reqCreate', { type, vnos, data, draft: draft === 'direct' ? false : draft });
+      if (draft === 'direct') { await api('reqReview', { id: j.id, decision: 'approve', note: 'تنفيذ مباشر من المدير' }); toast(type === 'cancel' ? 'تم الإلغاء مباشرة' : 'تم التحويل مباشرة — أرسلها للسائق الجديد'); m.remove(); after && after(); await reloadAll(); return; } }
     toast(draft ? 'حُفظت المسودة' : 'تم تقديم الطلب للمراجعة'); m.remove(); after && after(); await reloadAll();
   });
   const rd = m.querySelector('#rd'); if (rd) rd.onclick = e => send(true, e.target);
   m.querySelector('#rs').onclick = e => send(false, e.target);
+  const rx = m.querySelector('#rx'); if (rx) rx.onclick = e => { if (!confirm('تنفيذ مباشر بدون مراجعة؟ يُسجَّل باسمك في سجل الطلب.')) return; send('direct', e.target); };
 }
 
 /* ============ الطلبات والمراجعة ============ */
@@ -602,7 +606,7 @@ function showRequest(id) {
   const r = S.R.find(x => x.id === id); if (!r) return toast('الطلب غير متاح لحسابك', 1);
   const d = r.data || {}; const mine = r.createdBy === S.me.u; const open = OPEN.indexOf(r.status) > -1;
   const vs = String(r.vnos).split(',').map(n => vOf(n) || { vno: n });
-  const reviewable = open && canReview(r) && !mine;
+  const reviewable = open && canReview(r) && (!mine || S.me.admin);   // المدير يعتمد طلبه
   const m = pageView(esc(r.typeName) + ' — ' + esc(r.id), 'r:' + r.id, 'طلب ' + r.id, () => showRequest(id));
   const f = (k, val, wide) => `<div class="f${wide ? ' w' : ''}"><span>${k}</span><div>${val == null || val === '' ? '—' : val}</div></div>`;
   const sec = (ic, t, body, n, cls) => `<section class="vs ${cls || ''}"><h3><span>${ic}</span>${t}${n != null ? `<em>${n}</em>` : ''}</h3>${body}</section>`;
@@ -627,7 +631,7 @@ function showRequest(id) {
   if (mine && ['مسودة', 'مرفوض', 'يحتاج إلى تعديل'].indexOf(r.status) > -1 && r.type !== 'objection' && can(REQ_PERM[r.type][0]))
     btns.push(`<button class="btn" data-x="edit">✏️ تعديل وإعادة التقديم</button>`);
   if (open && mine && !canReview(r)) btns.push('<span class="small muted">بانتظار مراجعة المشرف</span>');
-  if (open && mine && canReview(r)) btns.push('<span class="small muted">طلبك الشخصي يُحال للمدير أو مراجع آخر مخوّل — لا يمكنك اعتماده بنفسك.</span>');
+  if (open && mine && canReview(r) && !S.me.admin) btns.push('<span class="small muted">طلبك الشخصي يُحال للمدير أو مراجع آخر مخوّل — لا يمكنك اعتماده بنفسك.</span>');
   if (reviewable) {
     if (r.status !== 'قيد المراجعة') btns.push(`<button class="btn sec" data-x="claim">بدء المراجعة</button>`);
     if (r.type === 'objection') {
@@ -677,11 +681,15 @@ function vDrivers(m) {
     if (q) l = l.filter(d => (d.name + ' ' + d.iqama).toLowerCase().indexOf(q) > -1);
     if ($('du').checked) l = l.filter(d => d.unstamped > 0);
     if ($('dn').checked) l = l.filter(d => d.notSent > 0);
-    $('dl').innerHTML = !l.length ? '<div class="empty">لا يوجد</div>' : `<div class="scroll"><table class="tbl"><thead><tr><th>السائق</th><th>الهوية</th><th>الجوال</th><th>الكراج</th><th>المخالفات</th><th>غير موثّقة</th><th>لم تُبلّغ</th>${fin ? '<th>الإجمالي</th>' : ''}</tr></thead><tbody>
+    $('dl').innerHTML = !l.length ? '<div class="empty">لا يوجد</div>' : `<div class="scroll"><table class="tbl"><thead><tr><th>السائق</th><th>الهوية</th><th>الجوال</th><th>الكراج</th><th>المخالفات</th><th>غير موثّقة</th><th>لم تُبلّغ</th>${fin ? '<th>الإجمالي</th>' : ''}${can('whatsapp') ? '<th></th>' : ''}</tr></thead><tbody>
      ${l.slice(0, 800).map(d => { const p = S.phones[d.iqama] || {}; return `<tr class="click" data-d="${esc(d.iqama)}"><td>${esc(d.name)}</td><td class="n">${esc(d.iqama)}</td><td class="n">${esc(p.mob || '—')}</td><td>${esc(p.garage || '')}</td>
-      <td>${d.open}</td><td>${d.unstamped}</td><td>${d.notSent}</td>${fin ? `<td class="n">${money(d.total)}</td>` : ''}</tr>`; }).join('')}</tbody></table></div>`;
-    $('dl').querySelectorAll('[data-d]').forEach(tr => tr.onclick = () => showDriver(tr.dataset.d));
+      <td>${d.open}</td><td>${d.unstamped}</td><td>${d.notSent}</td>${fin ? `<td class="n">${money(d.total)}</td>` : ''}${can('whatsapp') ? `<td>${d.notSent ? `<button class="btn ok sm" data-ws="${esc(d.iqama)}">📲 إرسال (${d.notSent})</button>` : ''}</td>` : ''}</tr>`; }).join('')}</tbody></table></div>`;
+    $('dl').querySelectorAll('[data-d]').forEach(tr => tr.onclick = e => { if (e.target.closest('[data-ws]')) return; showDriver(tr.dataset.d); });
+    // إرسال سريع: كل المخالفات اللي لم تُبلّغ للسائق بضغطة، بدون فتح ملفه
+    $('dl').querySelectorAll('[data-ws]').forEach(b => b.onclick = () => { const d = drivers().find(x => x.iqama === b.dataset.ws); if (!d) return;
+      const sel = d.list.filter(v => v.status !== 'ملغاة' && (!v.doc || v.doc === 'لم يُبلّغ')).map(v => String(v.vno)); if (sel.length) waDialog(d, sel, null); });
   };
+  if (S.dnPreset) { $('dn').checked = true; S.dnPreset = false; }
   ['dq', 'du', 'dn'].forEach(id => $(id).addEventListener('input', go)); go();
 }
 async function showDriver(iqama) {
@@ -709,6 +717,11 @@ async function showDriver(iqama) {
     m.querySelectorAll('[data-k]').forEach(b => b.disabled = !sel.length);
   };
   bindTable(m.querySelector('#dv'), upd);
+  { // اختيار تلقائي: المخالفات اللي لم تُبلّغ — يضغط إرسال على طول
+    const pre = d.list.filter(v => v.status !== 'ملغاة' && (!v.doc || v.doc === 'لم يُبلّغ')).map(v => String(v.vno));
+    m.querySelectorAll('#dv [data-s]').forEach(c => { if (!c.disabled && pre.indexOf(c.dataset.s) > -1) c.checked = true; });
+    if (pre.length) { const c0 = m.querySelector('#dv [data-s]:checked'); if (c0) c0.onchange(); m.querySelector('#selInfo').textContent += ' (اخترنا لك تلقائياً المخالفات اللي لم تُبلّغ)'; }
+  }
   m.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
     const sel = selected(m.querySelector('#dv')); const k = b.dataset.k;
     if (k === 'print' || k === 'stampForm') return busy(b, () => makeProof(d, sel, k === 'stampForm' ? 'stamp' : 'print'));
@@ -820,9 +833,10 @@ function ackDialog(d, sel) {
    <div class="row"><label class="chk"><input type="radio" name="ac" value="me" checked> السائق نفسه (${esc(d.name)})</label><label class="chk"><input type="radio" name="ac" value="other"> سائق آخر</label></div>
    <div id="ao" style="display:none;margin-top:8px"><input id="as" type="search" list="asl" autocomplete="off" placeholder="🔍 ابحث عن السائق بالاسم أو رقم الهوية" style="width:100%;margin-bottom:8px"><datalist id="asl"></datalist>
     <div class="row"><input id="ai" dir="ltr" placeholder="رقم هوية المتسبب" style="max-width:220px"><input id="an" class="grow" placeholder="اسم المتسبب"></div></div>
+   ${can('transferReq') ? '<div class="small muted" id="atn" style="display:none;margin-top:8px">إذا كان المتسبب سائق آخر، يُقدَّم تلقائياً <b>طلب تحويل</b> المخالفات له مع الإقرار.</div>' : ''}
    <div class="row" style="margin-top:12px"><button class="btn" id="ag">🧾 تنزيل الإقرار PDF</button></div>`);
   const isO = () => m.querySelector('[name=ac]:checked').value === 'other';
-  m.querySelectorAll('[name=ac]').forEach(x => x.onchange = () => { m.querySelector('#ao').style.display = isO() ? '' : 'none'; });
+  m.querySelectorAll('[name=ac]').forEach(x => x.onchange = () => { m.querySelector('#ao').style.display = isO() ? '' : 'none'; const t = m.querySelector('#atn'); if (t) t.style.display = isO() ? '' : 'none'; });
   m.querySelector('#ai').oninput = e => { const p = S.phones[e.target.value.trim()]; if (p && p.name && !m.querySelector('#an').value) m.querySelector('#an').value = p.name; };
   // بحث السائقين: من «إدارة السائقين» + سائقي المخالفات
   const ALL = {}; Object.keys(S.phones || {}).forEach(q => { if ((S.phones[q] || {}).name) ALL[q] = S.phones[q].name; }); drivers().forEach(x => { if (!ALL[x.iqama]) ALL[x.iqama] = x.name; });
@@ -838,7 +852,14 @@ function ackDialog(d, sel) {
       if (c.iqama === d.iqama) return toast('المتسبب هو نفس السائق — اختر «السائق نفسه»', 1); }
     const j = await api('printLog', { kind: 'print', vnos: sel });
     const pdf = await ackPdf(d, vs, c, 'إقرار ' + j.id);
-    pdf.save('إقرار_ارتكاب_مخالفة_' + c.iqama + '_' + j.id + '.pdf'); toast('تم إعداد الإقرار'); m.remove();
+    pdf.save('إقرار_ارتكاب_مخالفة_' + c.iqama + '_' + j.id + '.pdf');
+    // المتسبب سائق آخر → طلب تحويل جاهز بنفس البيانات (بدل ما يقدّمه منفصل)
+    if (c.iqama !== d.iqama && can('transferReq')) {
+      try { await api('reqCreate', { type: 'transfer', vnos: sel, data: { newIqama: c.iqama, newName: c.name, reason: 'إقرار ارتكاب مخالفة (' + j.id + ') — المتسبب ' + c.name + ' (' + c.iqama + ')', newFiles: [] } });
+        toast('تم إعداد الإقرار + تقديم طلب تحويل للمتسبب — بانتظار الاعتماد'); await reloadAll(); }
+      catch (er) { toast('تم إعداد الإقرار — تعذّر تقديم طلب التحويل: ' + er.message, 1); }
+    } else toast('تم إعداد الإقرار');
+    m.remove();
   });
 }
 async function makeProof(d, sel, kind) {
