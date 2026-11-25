@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>نظام المخالفات — Northwest Bus</title>
 <script src="https://hanode40-sketch.github.io/all-op/auth.js" data-bar="off"></script>
+<script src="https://hanode40-sketch.github.io/all-op/i18n.js"></script>
+<script src="https://hanode40-sketch.github.io/all-op/i18n/common.js"></script>
+<script src="i18n/fines.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -185,7 +188,7 @@ html[data-theme=dark] .sel{background:#2b2210!important}
   <nav class="tabs" id="tabs"></nav>
   <main id="main"><div class="loader">جاري التحميل…</div></main>
 </div>
-<div id="pdfStage"></div>
+<div id="pdfStage" dir="rtl" data-noi18n></div>
 
 <script>
 /* ============ الإعداد ============ */
@@ -463,8 +466,8 @@ function vList(m) {
   const months = uniq(S.V.map(v => v.month)).sort().reverse();
   m.innerHTML = `<div class="card"><div class="row">
     <input id="q" type="search" class="grow" placeholder="ابحث برقم المخالفة أو الهوية أو اسم السائق أو اللوحة أو رقم التشغيل">
-    <select id="fm"><option value="">كل الأشهر</option>${months.map(x => `<option>${esc(x)}</option>`).join('')}</select>
-    <select id="fs"><option value="">كل حالات التوثيق</option><option>لم يُبلّغ</option><option>تم التبليغ — ضمن مهلة الاعتراض</option><option>أقرّ السائق إلكترونياً</option><option>ثابتة — لم يعترض خلال المهلة</option><option>معترض عليها</option><option>تم التبصيم (ورقي)</option></select>
+    <select id="fm"><option value="">كل الأشهر</option>${months.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select>
+    <select id="fs"><option value="">كل حالات التوثيق</option><option value="لم يُبلّغ">لم يُبلّغ</option><option value="تم التبليغ — ضمن مهلة الاعتراض">تم التبليغ — ضمن مهلة الاعتراض</option><option value="أقرّ السائق إلكترونياً">أقرّ السائق إلكترونياً</option><option value="ثابتة — لم يعترض خلال المهلة">ثابتة — لم يعترض خلال المهلة</option><option value="معترض عليها">معترض عليها</option><option value="تم التبصيم (ورقي)">تم التبصيم (ورقي)</option></select>
     <select id="fo"><option value="">الكل</option><option value="obj">معترض عليها</option><option value="sent">أُرسلت واتساب</option><option value="notsent">لم تُرسل</option><option value="tr">محوّلة</option></select>
     <button class="btn sec" id="xls">⬇️ Excel</button></div>
     <div class="small muted" id="cnt" style="margin-top:6px"></div></div><div class="card" id="res"></div>`;
@@ -537,7 +540,7 @@ document.addEventListener('click', e => { const tr = e.target.closest('tr[data-r
 
 function respDialog(v, parent) {
   const m = modal('تصنيف المسؤولية — ' + esc(v.vno), `<p class="small muted">هذا التصنيف يظهر للمدير فقط. الموظف والمشرف لا يرون إلا المخالفات بتصنيف «مسؤولية السائق»، والمخالفات بتصنيف آخر تختفي من قوائمهم.</p>
-   <div class="row"><select id="rs"><option>السائق</option><option>الشركة</option><option>قيد المراجعة</option><option>غير مدفوعة</option></select><button class="btn" id="rsb">حفظ</button></div>`);
+   <div class="row"><select id="rs"><option value="السائق">السائق</option><option value="الشركة">الشركة</option><option value="قيد المراجعة">قيد المراجعة</option><option value="غير مدفوعة">غير مدفوعة</option></select><button class="btn" id="rsb">حفظ</button></div>`);
   m.querySelector('#rs').value = v.resp || 'السائق';
   m.querySelector('#rsb').onclick = e => busy(e.target, async () => { await api('setResp', { vno: v.vno, resp: m.querySelector('#rs').value }); toast('تم الحفظ'); m.remove(); parent && parent.remove(); await reloadAll(); });
 }
@@ -1041,7 +1044,7 @@ function vReports(m) {
   const months = uniq(S.V.map(v => v.month)).sort();
   const fin = can('finance');
   m.innerHTML = `<div class="card no-print"><div class="row">
-   <label>من <select id="r1">${months.map(x => `<option>${esc(x)}</option>`).join('')}</select></label><label>إلى <select id="r2">${months.map(x => `<option>${esc(x)}</option>`).join('')}</select></label>
+   <label>من <select id="r1">${months.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select></label><label>إلى <select id="r2">${months.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select></label>
    <label>التقرير <select id="rg"><option value="month">شهري</option><option value="year">سنوي</option><option value="driver">حسب السائق</option><option value="opNo">حسب رقم التشغيل</option><option value="plate">حسب المركبة</option>
     <option value="city">حسب المدينة</option><option value="type">حسب نوع المخالفة</option><option value="stamp">التوثيق الإلكتروني</option><option value="status">الملغاة والمحوّلة والمعلقة</option><option value="sent">الإرسال عبر واتساب</option>
     <option value="reqs">الطلبات (المقدمة/المقبولة/المرفوضة)</option><option value="staff">أداء الموظفين والمشرفين</option></select></label>
